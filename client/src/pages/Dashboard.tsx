@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Users, BarChart3, AlertCircle, Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { relatorios, emprestimos, reservas, usuarios, livros } from '@/services/api';
+import { emprestimos, reservas, usuarios, livros, checkServicos } from '@/services/api';
 import { toast } from 'sonner';
 
 interface KpiData {
@@ -27,7 +27,11 @@ export default function Dashboard() {
   useEffect(() => {
     async function carregarDados() {
       try {
-        // Carrega dados de cada serviço em paralelo, sem travar se um falhar
+        // 1. Healthcheck dedicado — não depende de dados reais, apenas testa se o serviço responde
+        const status = await checkServicos();
+        setStatusServicos(status);
+
+        // 2. Carrega KPIs em paralelo, sem travar se um serviço falhar
         const [livrosData, usuariosData, emprestimosData, pendentes] = await Promise.allSettled([
           livros.listar(),
           usuarios.listar(),
@@ -35,7 +39,7 @@ export default function Dashboard() {
           reservas.contarPendentes(),
         ]);
 
-        const kpiData: KpiData = {
+        setKpis({
           totalLivros: livrosData.status === 'fulfilled' ? livrosData.value.length : 0,
           usuariosAtivos: usuariosData.status === 'fulfilled'
             ? usuariosData.value.filter((u) => u.usuario_status === 'Ativo').length
@@ -44,17 +48,9 @@ export default function Dashboard() {
             ? emprestimosData.value.filter((e) => e.emprestimo_status === 'Ativo').length
             : 0,
           reservasPendentes: pendentes.status === 'fulfilled' ? pendentes.value : 0,
-        };
-        setKpis(kpiData);
-
-        setStatusServicos({
-          catalogo: livrosData.status === 'fulfilled',
-          usuario: usuariosData.status === 'fulfilled',
-          emprestimo: emprestimosData.status === 'fulfilled',
-          reserva: pendentes.status === 'fulfilled',
         });
 
-        // Monta feed de atividades recentes a partir dos empréstimos
+        // 3. Feed de atividades recentes
         if (emprestimosData.status === 'fulfilled') {
           const recentes = emprestimosData.value.slice(0, 5).map((e, i) => ({
             id: e.emprestimo_id,
@@ -73,17 +69,17 @@ export default function Dashboard() {
   }, []);
 
   const stats = [
-    { title: 'Total de Livros', value: kpis.totalLivros, icon: <BookOpen className="w-6 h-6" />, color: 'text-blue-600' },
-    { title: 'Usuários Ativos', value: kpis.usuariosAtivos, icon: <Users className="w-6 h-6" />, color: 'text-green-600' },
-    { title: 'Empréstimos Ativos', value: kpis.emprestimosAtivos, icon: <BarChart3 className="w-6 h-6" />, color: 'text-purple-600' },
-    { title: 'Reservas Pendentes', value: kpis.reservasPendentes, icon: <AlertCircle className="w-6 h-6" />, color: 'text-orange-600' },
+    { title: 'Total de Livros',      value: kpis.totalLivros,       icon: <BookOpen  className="w-6 h-6" />, color: 'text-blue-600'   },
+    { title: 'Usuários Ativos',      value: kpis.usuariosAtivos,    icon: <Users     className="w-6 h-6" />, color: 'text-green-600'  },
+    { title: 'Empréstimos Ativos',   value: kpis.emprestimosAtivos, icon: <BarChart3 className="w-6 h-6" />, color: 'text-purple-600' },
+    { title: 'Reservas Pendentes',   value: kpis.reservasPendentes, icon: <AlertCircle className="w-6 h-6" />, color: 'text-orange-600' },
   ];
 
   const servicos = [
-    { nome: 'Catálogo (9502)', online: statusServicos.catalogo },
-    { nome: 'Usuário (9501)', online: statusServicos.usuario },
+    { nome: 'Catálogo (9502)',   online: statusServicos.catalogo   },
+    { nome: 'Usuário (9501)',    online: statusServicos.usuario    },
     { nome: 'Empréstimo (9500)', online: statusServicos.emprestimo },
-    { nome: 'Reserva (9503)', online: statusServicos.reserva },
+    { nome: 'Reserva (9503)',    online: statusServicos.reserva    },
   ];
 
   return (

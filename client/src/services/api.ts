@@ -185,27 +185,27 @@ export const exemplares = {
   },
 };
 
-// ─── EMPRÉSTIMOS ──────────────────────────────────────────────────────────────
-
+// ─── EMPRÉSTIMOS (Ajustado no api.ts se não quiser mexer no backend) ──────────
 export const emprestimos = {
   listar: async (): Promise<Emprestimo[]> => {
-    const { data } = await clientEmprestimo.get('/biblioteca/emprestimos');
+    const { data } = await clientEmprestimo.get('/emprestimos'); // Removido /biblioteca
     return data.data ?? data;
   },
   obterPorId: async (id: number): Promise<Emprestimo> => {
-    const { data } = await clientEmprestimo.get(`/biblioteca/emprestimos/${id}`);
+    const { data } = await clientEmprestimo.get(`/emprestimos/${id}`); // Removido /biblioteca
     return data.data ?? data;
   },
   criar: async (payload: { usuario_id: number; livro_id: number; exemplar_id: number }) => {
-    const { data } = await clientEmprestimo.post('/biblioteca/emprestimos', payload);
+    const { data } = await clientEmprestimo.post('/emprestimos', payload); // Removido /biblioteca
     return data.data ?? data;
   },
-  devolver: async (id: number) => {
-    const { data } = await clientEmprestimo.patch(`/biblioteca/emprestimos/${id}/devolver`);
+  devolver: async (emprestimoId: number) => {
+    // O backend registra devoluções via POST /devolucoes, não PATCH /emprestimos/:id/devolver
+    const { data } = await clientEmprestimo.post('/devolucoes', { emprestimo_id: emprestimoId });
     return data.data ?? data;
   },
   listarAtrasados: async (): Promise<Emprestimo[]> => {
-    const { data } = await clientEmprestimo.get('/biblioteca/emprestimos/atrasados');
+    const { data } = await clientEmprestimo.get('/emprestimos/atrasados'); // Removido /biblioteca
     return data.data ?? data;
   },
 };
@@ -271,3 +271,26 @@ export const relatorios = {
     return response.data;
   },
 };
+
+// ─── HEALTHCHECK DOS MICROSSERVIÇOS ──────────────────────────────────────────
+// Usa o endpoint /health de cada serviço — leve, sem autenticação, sem dados.
+// Fallback para a rota raiz caso o serviço não tenha /health próprio.
+
+async function ping(client: ReturnType<typeof makeClient>, path = '/health'): Promise<boolean> {
+  try {
+    await client.get(path, { timeout: 3_000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function checkServicos() {
+  const [catalogo, usuario, emprestimo, reserva] = await Promise.all([
+    ping(clientCatalogo),
+    ping(clientUsuario),
+    ping(clientEmprestimo),   // bate em GET http://localhost:9500/health
+    ping(clientReserva),
+  ]);
+  return { catalogo, usuario, emprestimo, reserva };
+}
