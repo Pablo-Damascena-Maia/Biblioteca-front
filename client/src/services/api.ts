@@ -13,17 +13,17 @@
 import axios from 'axios';
 
 // ─── Base URLs ────────────────────────────────────────────────────────────────
-// Em desenvolvimento usamos o proxy do Vite (/api/*) para evitar CORS.
-// O Vite redireciona internamente para cada microsserviço.
-// Em produção, defina as variáveis de ambiente com as URLs reais.
+// Dev: proxy Vite intercepta /biblioteca/* e encaminha para:
+//      http://academico3.rj.senac.br/20261prj5/biblioteca/*
+// Prod: VITE_URL_* já apontam para academico3 com o prefixo completo.
 const isDev = import.meta.env.DEV;
 
 const BASE = {
-  usuario:    isDev ? '/api/usuario'    : (import.meta.env.VITE_URL_USUARIO    || 'http://localhost:9501'),
-  catalogo:   isDev ? '/api/catalogo'   : (import.meta.env.VITE_URL_CATALOGO   || 'http://localhost:9502'),
-  reserva:    isDev ? '/api/reserva'    : (import.meta.env.VITE_URL_RESERVA    || 'http://localhost:9503'),
-  relatorio:  isDev ? '/api/relatorio'  : (import.meta.env.VITE_URL_RELATORIO  || 'http://localhost:9504'),
-  emprestimo: isDev ? '/api/emprestimo' : (import.meta.env.VITE_URL_EMPRESTIMO || 'http://localhost:9500'),
+  usuario:    isDev ? '/biblioteca/usuario'    : (import.meta.env.VITE_URL_USUARIO    || 'http://academico3.rj.senac.br/20261prj5/biblioteca/usuario'),
+  catalogo:   isDev ? '/biblioteca/catalogo'   : (import.meta.env.VITE_URL_CATALOGO   || 'http://academico3.rj.senac.br/20261prj5/biblioteca/catalogo'),
+  reserva:    isDev ? '/biblioteca/reserva'    : (import.meta.env.VITE_URL_RESERVA    || 'http://academico3.rj.senac.br/20261prj5/biblioteca/reserva'),
+  relatorio:  isDev ? '/biblioteca/relatorio'  : (import.meta.env.VITE_URL_RELATORIO  || 'http://academico3.rj.senac.br/20261prj5/biblioteca/relatorio'),
+  emprestimo: isDev ? '/biblioteca/emprestimo' : (import.meta.env.VITE_URL_EMPRESTIMO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/emprestimo'),
 };
 
 // ─── Instâncias Axios por serviço ─────────────────────────────────────────────
@@ -225,34 +225,39 @@ export const emprestimos = {
 // Exemplo: GET /biblioteca/reserva/listar-ativas
 
 export const reservas = {
+  // clientReserva.baseURL = '/biblioteca/reserva'
+  // Proxy: /biblioteca/reserva/* → academico3.rj.senac.br/20261prj5/biblioteca/reserva/*
+  // O backend da Reserva registra rotas como: /biblioteca/reserva/listar-ativas, etc.
+  // Axios combina baseURL + path: /biblioteca/reserva + /biblioteca/reserva/x = /biblioteca/reserva/biblioteca/reserva/x ❌
+  // Solução: paths devem ser relativos (sem / inicial): biblioteca/reserva/<sufixo>
   listarAtivas: async (): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get('/biblioteca/reserva/listar-ativas');
+    const { data } = await clientReserva.get('biblioteca/reserva/listar-ativas');
     return data.data ?? data;
   },
   obterPorId: async (id: number): Promise<Reserva> => {
-    const { data } = await clientReserva.get(`/biblioteca/reserva/listar/${id}`);
+    const { data } = await clientReserva.get(`biblioteca/reserva/listar/${id}`);
     return data.data ?? data;
   },
   criar: async (payload: { usuario_id: number; livro_id: number }) => {
-    const { data } = await clientReserva.post('/biblioteca/reserva/criar', payload);
+    const { data } = await clientReserva.post('biblioteca/reserva/criar', payload);
     return data.data ?? data;
   },
   cancelar: async (id: number) => {
-    const { data } = await clientReserva.patch(`/biblioteca/reserva/atualizar-status/${id}`, {
+    const { data } = await clientReserva.patch(`biblioteca/reserva/atualizar-status/${id}`, {
       reserva_status: 'Cancelada',
     });
     return data.data ?? data;
   },
   buscarPorUsuario: async (usuarioId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`/biblioteca/reserva/usuario/listar/${usuarioId}`);
+    const { data } = await clientReserva.get(`biblioteca/reserva/usuario/listar/${usuarioId}`);
     return data.data ?? data;
   },
   filaDoLivro: async (livroId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`/biblioteca/reserva/livro/listar-fila/${livroId}`);
+    const { data } = await clientReserva.get(`biblioteca/reserva/livro/listar-fila/${livroId}`);
     return data.data ?? data;
   },
   contarPendentes: async (): Promise<number> => {
-    const { data } = await clientReserva.get('/biblioteca/reserva/metricas/pendentes');
+    const { data } = await clientReserva.get('biblioteca/reserva/metricas/pendentes');
     return data.data?.total ?? data.total ?? 0;
   },
 };
@@ -300,8 +305,8 @@ export async function checkServicos() {
     ping(clientCatalogo),
     ping(clientUsuario),
     ping(clientEmprestimo),   // GET /health
-    // Reserva não tem /health — usamos uma rota real que retorna 200
-    ping(clientReserva, '/biblioteca/reserva/listar-ativas'),
+    // Reserva não tem /health — usa rota real com path relativo
+    ping(clientReserva, 'biblioteca/reserva/listar-ativas'),
   ]);
   return { catalogo, usuario, emprestimo, reserva };
 }

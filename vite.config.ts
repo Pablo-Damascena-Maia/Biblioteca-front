@@ -28,30 +28,12 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      "/api/emprestimo": {
-        target: "http://localhost:9500",
+      // Proxy único: /biblioteca/* → academico3.rj.senac.br/20261prj5/biblioteca/*
+      // Cobre todos os microsserviços com uma só regra.
+      "/biblioteca": {
+        target: "http://academico3.rj.senac.br",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/emprestimo/, ""),
-      },
-      "/api/usuario": {
-        target: "http://localhost:9501",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/usuario/, ""),
-      },
-      "/api/catalogo": {
-        target: "http://localhost:9502",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/catalogo/, ""),
-      },
-      "/api/reserva": {
-        target: "http://localhost:9503",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/reserva/, ""),
-      },
-      "/api/relatorio": {
-        target: "http://localhost:9504",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/relatorio/, ""),
+        rewrite: (path) => "/20261prj5" + path,
       },
     },
   },
