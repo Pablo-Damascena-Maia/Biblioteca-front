@@ -1,5 +1,5 @@
 # ── Estágio 1: Build do React ──────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # ── Estágio 2: Servidor de produção ───────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app
 

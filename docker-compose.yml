@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  biblioteca-front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: biblioteca-front
+    ports:
+      - "9505:9505"
+    environment:
+      - NODE_ENV=production
+      - PORT=9505
+    restart: always
