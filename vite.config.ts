@@ -27,5 +27,32 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    proxy: {
+      "/api/emprestimo": {
+        target: "http://localhost:9500",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/emprestimo/, ""),
+      },
+      "/api/usuario": {
+        target: "http://localhost:9501",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/usuario/, ""),
+      },
+      "/api/catalogo": {
+        target: "http://localhost:9502",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/catalogo/, ""),
+      },
+      "/api/reserva": {
+        target: "http://localhost:9503",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/reserva/, ""),
+      },
+      "/api/relatorio": {
+        target: "http://localhost:9504",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/relatorio/, ""),
+      },
+    },
   },
 });

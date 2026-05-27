@@ -3,22 +3,27 @@
  * Camada central de comunicação com todos os microsserviços.
  *
  * Portas:
- *   Usuário    → 9501  /usuarios  /auth
- *   Catálogo   → 9502  /livros  /exemplares  /autores  /generos
- *   Reserva    → 9503  /reservas
- *   Relatório  → 9504  /reservas (relatórios)
- *   Empréstimo → 9500  /biblioteca/emprestimos
+ * Usuário    → 9501  /usuarios  /auth
+ * Catálogo   → 9502  /livros  /exemplares  /autores  /generos
+ * Reserva    → 9503  /reservas
+ * Relatório  → 9504  /reservas (relatórios)
+ * Empréstimo → 9500  /biblioteca/emprestimos
  */
 
 import axios from 'axios';
 
-// ─── Base URLs (lidas de variáveis de ambiente ou fallback local) ─────────────
+// ─── Base URLs ────────────────────────────────────────────────────────────────
+// Em desenvolvimento usamos o proxy do Vite (/api/*) para evitar CORS.
+// O Vite redireciona internamente para cada microsserviço.
+// Em produção, defina as variáveis de ambiente com as URLs reais.
+const isDev = import.meta.env.DEV;
+
 const BASE = {
-  usuario:   import.meta.env.VITE_URL_USUARIO   || 'http://localhost:9501',
-  catalogo:  import.meta.env.VITE_URL_CATALOGO  || 'http://localhost:9502',
-  reserva:   import.meta.env.VITE_URL_RESERVA   || 'http://localhost:9503',
-  relatorio: import.meta.env.VITE_URL_RELATORIO || 'http://localhost:9504',
-  emprestimo:import.meta.env.VITE_URL_EMPRESTIMO|| 'http://localhost:9500',
+  usuario:    isDev ? '/api/usuario'    : (import.meta.env.VITE_URL_USUARIO    || 'http://localhost:9501'),
+  catalogo:   isDev ? '/api/catalogo'   : (import.meta.env.VITE_URL_CATALOGO   || 'http://localhost:9502'),
+  reserva:    isDev ? '/api/reserva'    : (import.meta.env.VITE_URL_RESERVA    || 'http://localhost:9503'),
+  relatorio:  isDev ? '/api/relatorio'  : (import.meta.env.VITE_URL_RELATORIO  || 'http://localhost:9504'),
+  emprestimo: isDev ? '/api/emprestimo' : (import.meta.env.VITE_URL_EMPRESTIMO || 'http://localhost:9500'),
 };
 
 // ─── Instâncias Axios por serviço ─────────────────────────────────────────────
@@ -31,9 +36,15 @@ const clientReserva    = makeClient(BASE.reserva);
 const clientRelatorio  = makeClient(BASE.relatorio);
 const clientEmprestimo = makeClient(BASE.emprestimo);
 
-// Interceptor: injeta token JWT em todas as requisições
+// Interceptor: injeta token JWT em todas as requisições (EXCETO no /health)
 [clientUsuario, clientCatalogo, clientReserva, clientRelatorio, clientEmprestimo].forEach((c) => {
   c.interceptors.request.use((config) => {
+    // Se a requisição for para o endpoint de health, não injetamos o Authorization.
+    // Isso evita o envio de preflight OPTIONS complexo que quebra o CORS em rotas públicas.
+    if (config.url?.endsWith('/health')) {
+      return config;
+    }
+
     const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
@@ -185,27 +196,26 @@ export const exemplares = {
   },
 };
 
-// ─── EMPRÉSTIMOS (Ajustado no api.ts se não quiser mexer no backend) ──────────
+// ─── EMPRÉSTIMOS ──────────────────────────────────────────────────────────────
 export const emprestimos = {
   listar: async (): Promise<Emprestimo[]> => {
-    const { data } = await clientEmprestimo.get('/emprestimos'); // Removido /biblioteca
+    const { data } = await clientEmprestimo.get('/emprestimos');
     return data.data ?? data;
   },
   obterPorId: async (id: number): Promise<Emprestimo> => {
-    const { data } = await clientEmprestimo.get(`/emprestimos/${id}`); // Removido /biblioteca
+    const { data } = await clientEmprestimo.get(`/emprestimos/${id}`);
     return data.data ?? data;
   },
   criar: async (payload: { usuario_id: number; livro_id: number; exemplar_id: number }) => {
-    const { data } = await clientEmprestimo.post('/emprestimos', payload); // Removido /biblioteca
+    const { data } = await clientEmprestimo.post('/emprestimos', payload);
     return data.data ?? data;
   },
   devolver: async (emprestimoId: number) => {
-    // O backend registra devoluções via POST /devolucoes, não PATCH /emprestimos/:id/devolver
     const { data } = await clientEmprestimo.post('/devolucoes', { emprestimo_id: emprestimoId });
     return data.data ?? data;
   },
   listarAtrasados: async (): Promise<Emprestimo[]> => {
-    const { data } = await clientEmprestimo.get('/emprestimos/atrasados'); // Removido /biblioteca
+    const { data } = await clientEmprestimo.get('/emprestimos/atrasados');
     return data.data ?? data;
   },
 };
@@ -273,8 +283,6 @@ export const relatorios = {
 };
 
 // ─── HEALTHCHECK DOS MICROSSERVIÇOS ──────────────────────────────────────────
-// Usa o endpoint /health de cada serviço — leve, sem autenticação, sem dados.
-// Fallback para a rota raiz caso o serviço não tenha /health próprio.
 
 async function ping(client: ReturnType<typeof makeClient>, path = '/health'): Promise<boolean> {
   try {
