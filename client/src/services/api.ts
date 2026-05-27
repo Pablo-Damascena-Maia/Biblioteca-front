@@ -221,36 +221,38 @@ export const emprestimos = {
 };
 
 // ─── RESERVAS ─────────────────────────────────────────────────────────────────
+// O backend registra todas as rotas sob o prefixo /biblioteca/reserva
+// Exemplo: GET /biblioteca/reserva/listar-ativas
 
 export const reservas = {
   listarAtivas: async (): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get('/reservas/listar-ativas');
+    const { data } = await clientReserva.get('/biblioteca/reserva/listar-ativas');
     return data.data ?? data;
   },
   obterPorId: async (id: number): Promise<Reserva> => {
-    const { data } = await clientReserva.get(`/reservas/listar/${id}`);
+    const { data } = await clientReserva.get(`/biblioteca/reserva/listar/${id}`);
     return data.data ?? data;
   },
   criar: async (payload: { usuario_id: number; livro_id: number }) => {
-    const { data } = await clientReserva.post('/reservas/criar', payload);
+    const { data } = await clientReserva.post('/biblioteca/reserva/criar', payload);
     return data.data ?? data;
   },
   cancelar: async (id: number) => {
-    const { data } = await clientReserva.patch(`/reservas/atualizar-status/${id}`, {
+    const { data } = await clientReserva.patch(`/biblioteca/reserva/atualizar-status/${id}`, {
       reserva_status: 'Cancelada',
     });
     return data.data ?? data;
   },
   buscarPorUsuario: async (usuarioId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`/reservas/usuario/listar/${usuarioId}`);
+    const { data } = await clientReserva.get(`/biblioteca/reserva/usuario/listar/${usuarioId}`);
     return data.data ?? data;
   },
   filaDoLivro: async (livroId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`/reservas/livro/listar-fila/${livroId}`);
+    const { data } = await clientReserva.get(`/biblioteca/reserva/livro/listar-fila/${livroId}`);
     return data.data ?? data;
   },
   contarPendentes: async (): Promise<number> => {
-    const { data } = await clientReserva.get('/reservas/metricas/pendentes');
+    const { data } = await clientReserva.get('/biblioteca/reserva/metricas/pendentes');
     return data.data?.total ?? data.total ?? 0;
   },
 };
@@ -297,8 +299,9 @@ export async function checkServicos() {
   const [catalogo, usuario, emprestimo, reserva] = await Promise.all([
     ping(clientCatalogo),
     ping(clientUsuario),
-    ping(clientEmprestimo),   // bate em GET http://localhost:9500/health
-    ping(clientReserva),
+    ping(clientEmprestimo),   // GET /health
+    // Reserva não tem /health — usamos uma rota real que retorna 200
+    ping(clientReserva, '/biblioteca/reserva/listar-ativas'),
   ]);
   return { catalogo, usuario, emprestimo, reserva };
 }
