@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME  = 'biblioteca-front'
+        IMAGE_TAG = "${APP_NAME}:${env.BUILD_ID}"
+    }
+
+    stages {
+
+        stage('Verificar Repositório') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Pablo-Damascena-Maia/Biblioteca-front.git'
+            }
+        }
+
+        stage('Instalar Dependências') {
+            steps {
+                sh '''
+                    rm -rf node_modules
+                    npm install
+                '''
+            }
+        }
+
+        stage('Construir Imagem Docker') {
+            steps {
+                sh "docker build -t ${IMAGE_TAG} ."
+            }
+        }
+
+        stage('Fazer Deploy') {
+            steps {
+                // O '|| true' garante que se o container não existir, o Linux não quebra o pipeline
+                sh "docker rm -f ${APP_NAME} || true"
+
+                sh "docker run -d --name ${APP_NAME} -p 9505:9505 ${IMAGE_TAG}"
+            }
+        }
+
+        stage('Verificar Containers') {
+            steps {
+                sh 'docker ps'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deploy do ${APP_NAME} realizado com sucesso!"
+        }
+        failure {
+            echo "Houve um erro durante o deploy do ${APP_NAME}."
+        }
+        always {
+            sh 'docker image prune -f || true'
+        }
+    }
+}

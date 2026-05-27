@@ -36,7 +36,7 @@ async function startServer() {
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
-  const port = Number(process.env.PORT || 3000);
+  const port = Number(process.env.PORT || 9505);
   server.listen(port, "0.0.0.0", () => {
     console.log(`\n🚀 Frontend rodando em http://0.0.0.0:${port}`);
     console.log(`   Proxy: /biblioteca/* → ${ACADEMICO_BASE}${ACADEMICO_PREFIX}/biblioteca/*\n`);

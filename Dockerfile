@@ -1,0 +1,34 @@
+# ── Estágio 1: Build do React ──────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copia manifests de dependências
+COPY package.json package-lock.json ./
+
+# Instala todas as dependências (dev + prod para o build)
+RUN npm install
+
+# Copia o restante do código
+COPY . .
+
+# Gera o bundle estático em dist/public
+RUN npm run build
+
+# ── Estágio 2: Servidor de produção ───────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# Copia apenas o necessário para rodar em produção
+COPY package.json package-lock.json ./
+RUN npm install --omit=dev
+
+# Copia o bundle do React e o servidor Express compilado
+COPY --from=builder /app/dist ./dist
+
+EXPOSE 9505
+
+ENV NODE_ENV=production
+
+CMD ["node", "dist/index.js"]
