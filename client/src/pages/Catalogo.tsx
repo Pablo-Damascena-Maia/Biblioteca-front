@@ -31,11 +31,19 @@ export default function Catalogo() {
     }
   };
 
-  const filtered = data.filter(
-    (l) =>
-      l.livro_titulo.toLowerCase().includes(search.toLowerCase()) ||
-      (l.autor?.autor_nome || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = data.filter((l: any) => {
+    const termoBusca = (search || '').toLowerCase();
+
+    // Agora o campo correto vindo da sua API é 'titulo'
+    const tituloLivro = (l.titulo || '').toLowerCase();
+
+    // Como autores é um array (N:N), pegamos o nome do primeiro autor para a pesquisa
+    const nomeAutor = l.autores && l.autores.length > 0 && l.autores[0].autor
+      ? (l.autores[0].autor.nome || '').toLowerCase()
+      : '';
+
+    return tituloLivro.includes(termoBusca) || nomeAutor.includes(termoBusca);
+  });
 
   return (
     <DashboardLayout>
@@ -78,15 +86,22 @@ export default function Catalogo() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((livro) => (
-                      <tr key={livro.livro_id} className="border-b border-border hover:bg-secondary/50 transition-colors">
-                        <td className="py-4 px-4 text-foreground font-medium">{livro.livro_titulo}</td>
-                        <td className="py-4 px-4 text-muted-foreground">{livro.autor?.autor_nome ?? '—'}</td>
-                        <td className="py-4 px-4 text-muted-foreground">{livro.genero?.genero_nome ?? '—'}</td>
-                        <td className="py-4 px-4 text-center text-foreground">{livro.exemplares?.length ?? '—'}</td>
+                    {filtered.map((livro: any) => (
+                      <tr key={livro.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
+                        <td className="py-4 px-4 text-foreground font-medium">{livro.titulo}</td>
+                        <td className="py-4 px-4 text-muted-foreground">
+                          {livro.autores && livro.autores.length > 0 ? livro.autores[0].autor.nome : '—'}
+                        </td>
+                        <td className="py-4 px-4 text-muted-foreground">
+                          {livro.generos && livro.generos.length > 0 ? livro.generos[0].genero.nome : '—'}
+                        </td>
+                        <td className="py-4 px-4 text-center text-foreground">
+                          {livro.exemplares?.length ?? '—'}
+                        </td>
+
                         <td className="py-4 px-4">
-                          <Badge variant="outline" className={livro.livro_status === 'Ativo' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'}>
-                            {livro.livro_status}
+                          <Badge variant="outline" className={livro.status === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'}>
+                            {livro.status === 1 ? 'Ativo' : 'Inativo'}
                           </Badge>
                         </td>
                         <td className="py-4 px-4 text-right">
@@ -99,7 +114,7 @@ export default function Catalogo() {
                               onClick={() => handleAlterarStatus(livro)}
                               title="Alternar status"
                             >
-                              {livro.livro_status === 'Ativo' ? 'Desativar' : 'Ativar'}
+                              {livro.status === 1 ? 'Desativar' : 'Ativar'}
                             </button>
                           </div>
                         </td>
