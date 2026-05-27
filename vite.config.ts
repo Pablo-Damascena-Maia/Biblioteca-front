@@ -22,7 +22,6 @@ export default defineConfig({
     port: 9505,
     strictPort: false,
     host: true,
-    allowedHosts: ["localhost", "127.0.0.1"],
     fs: {
       strict: true,
       deny: ["**/.*"],
