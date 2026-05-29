@@ -19,10 +19,10 @@ import axios from 'axios';
 const isDev = import.meta.env.DEV;
 
 const BASE = {
-  usuario:    isDev ? '/biblioteca/usuario'    : (import.meta.env.VITE_URL_USUARIO    || 'http://academico3.rj.senac.br/20261prj5/biblioteca/usuario'),
-  catalogo:   isDev ? '/biblioteca/catalogo'   : (import.meta.env.VITE_URL_CATALOGO   || 'http://academico3.rj.senac.br/20261prj5/biblioteca/catalogo'),
-  reserva:    isDev ? '/biblioteca/reserva'    : (import.meta.env.VITE_URL_RESERVA    || 'http://academico3.rj.senac.br/20261prj5/biblioteca/reserva'),
-  relatorio:  isDev ? '/biblioteca/relatorio'  : (import.meta.env.VITE_URL_RELATORIO  || 'http://academico3.rj.senac.br/20261prj5/biblioteca/relatorio'),
+  usuario: isDev ? '/biblioteca/usuario' : (import.meta.env.VITE_URL_USUARIO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/usuario'),
+  catalogo: isDev ? '/biblioteca/catalogo' : (import.meta.env.VITE_URL_CATALOGO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/catalogo'),
+  reserva: isDev ? '/biblioteca/reserva' : (import.meta.env.VITE_URL_RESERVA || 'http://academico3.rj.senac.br/20261prj5/biblioteca/reserva'),
+  relatorio: isDev ? '/biblioteca/relatorio' : (import.meta.env.VITE_URL_RELATORIO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/relatorio'),
   emprestimo: isDev ? '/biblioteca/emprestimo' : (import.meta.env.VITE_URL_EMPRESTIMO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/emprestimo'),
 };
 
@@ -30,10 +30,10 @@ const BASE = {
 const makeClient = (baseURL: string) =>
   axios.create({ baseURL, timeout: 10_000 });
 
-const clientUsuario    = makeClient(BASE.usuario);
-const clientCatalogo   = makeClient(BASE.catalogo);
-const clientReserva    = makeClient(BASE.reserva);
-const clientRelatorio  = makeClient(BASE.relatorio);
+const clientUsuario = makeClient(BASE.usuario);
+const clientCatalogo = makeClient(BASE.catalogo);
+const clientReserva = makeClient(BASE.reserva);
+const clientRelatorio = makeClient(BASE.relatorio);
 const clientEmprestimo = makeClient(BASE.emprestimo);
 
 // Interceptor: injeta token JWT em todas as requisições (EXCETO no /health)
@@ -64,20 +64,50 @@ export interface Usuario {
   telefone?: { telefone_numero: string };
 }
 
+export interface Autor {
+  id: number;
+  nome: string;
+}
+
+export interface Genero {
+  id: number;
+  nome: string;
+}
+
 export interface Livro {
-  livro_id: number;
-  livro_titulo: string;
-  livro_sinopse?: string;
-  livro_status: 'Ativo' | 'Inativo';
-  autor?: { autor_nome: string };
-  genero?: { genero_nome: string };
+  id: number;
+  titulo: string;
+  isbn: string;
+  editora?: string;
+  anoPublicacao?: number;
+  sinopse?: string;
+  numeroPaginas?: number;
+  idioma?: string;
+  status?: number; // 1 = Ativo, 0 = Inativo
+  autores?: { autor: Autor }[];
+  generos?: { genero: Genero }[];
   exemplares?: Exemplar[];
 }
 
+export interface CriarLivroPayload {
+  titulo: string;
+  isbn: string;
+  editora?: string;
+  anoPublicacao?: number;
+  sinopse?: string;
+  numeroPaginas?: number;
+  idioma?: string;
+  autores?: number[];
+  generos?: number[];
+}
+
 export interface Exemplar {
-  exemplar_id: number;
-  exemplar_codigo_barras: string;
-  exemplar_status: 'Disponivel' | 'Emprestado' | 'Reservado' | 'Danificado';
+  id: number;
+  codigoBarras: string;
+  condicao?: 'Novo' | 'Bom' | 'Regular' | 'Desgastado';
+  disponibilidade?: 'Disponivel' | 'Emprestado' | 'Manutencao' | 'Perdido';
+  dataAquisicao?: string;
+  livroId: number;
 }
 
 export interface Emprestimo {
@@ -173,12 +203,30 @@ export const livros = {
     const { data } = await clientCatalogo.get(`/livros/${id}`);
     return data.data ?? data;
   },
-  criar: async (payload: Partial<Livro>) => {
+  criar: async (payload: CriarLivroPayload) => {
     const { data } = await clientCatalogo.post('/livros', payload);
     return data.data ?? data;
   },
-  alterarStatus: async (id: number, status: string) => {
+  alterarStatus: async (id: number, status: number) => {
     const { data } = await clientCatalogo.patch(`/livros/${id}/status`, { status });
+    return data.data ?? data;
+  },
+};
+
+// ─── CATÁLOGO — AUTORES ───────────────────────────────────────────────────────
+
+export const autores = {
+  listar: async (): Promise<Autor[]> => {
+    const { data } = await clientCatalogo.get('/autores');
+    return data.data ?? data;
+  },
+};
+
+// ─── CATÁLOGO — GÊNEROS ───────────────────────────────────────────────────────
+
+export const generos = {
+  listar: async (): Promise<Genero[]> => {
+    const { data } = await clientCatalogo.get('/generos');
     return data.data ?? data;
   },
 };

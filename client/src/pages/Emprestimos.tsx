@@ -88,7 +88,7 @@ export default function Emprestimos() {
     try {
       const [u, l] = await Promise.all([apiUsuarios.listar(), apiLivros.listar()]);
       setUsuariosList(Array.isArray(u) ? u.filter((x) => x.usuario_status === 'Ativo') : []);
-      setLivrosList(Array.isArray(l) ? l.filter((x) => x.livro_status === 'Ativo') : []);
+      setLivrosList(Array.isArray(l) ? l.filter((x) => x.status === 1) : []);
     } catch {
       toast.error('Erro ao carregar dados para o formulário');
     } finally {
@@ -108,7 +108,7 @@ export default function Emprestimos() {
     try {
       const ex = await apiExemplares.listarPorLivro(Number(livroId));
       setExemplaresList(
-        Array.isArray(ex) ? ex.filter((e) => e.exemplar_status === 'Disponivel') : [],
+        Array.isArray(ex) ? ex.filter((e) => e.disponibilidade === 'Disponivel') : [],
       );
     } catch {
       toast.error('Erro ao carregar exemplares');
@@ -133,12 +133,12 @@ export default function Emprestimos() {
       });
       // Adiciona o novo empréstimo ao estado local
       const usuarioSel = usuariosList.find((u) => u.usuario_id === Number(selectedUsuario));
-      const livroSel = livrosList.find((l) => l.livro_id === Number(selectedLivro));
+      const livroSel = livrosList.find((l) => l.id === Number(selectedLivro));
       const emprestimoCriado: Emprestimo = {
         ...novo,
         emprestimo_status: novo.emprestimo_status ?? 'Ativo',
         usuario: usuarioSel ? { usuario_nome: usuarioSel.usuario_nome } : undefined,
-        livro: livroSel ? { livro_titulo: livroSel.livro_titulo } : undefined,
+        livro: livroSel ? { livro_titulo: livroSel.titulo } : undefined,
       };
       setData((prev) => [emprestimoCriado, ...prev]);
       setModalOpen(false);
@@ -328,9 +328,9 @@ export default function Emprestimos() {
                       </SelectItem>
                     ) : (
                       livrosList.map((l) => (
-                        <SelectItem key={l.livro_id} value={String(l.livro_id)}>
-                          {l.livro_titulo}
-                          {l.autor?.autor_nome ? ` — ${l.autor.autor_nome}` : ''}
+                        <SelectItem key={l.id} value={String(l.id)}>
+                          {l.titulo}
+                          {l.autores && l.autores.length > 0 ? ` — ${l.autores.map(a => a.autor.nome).join(', ')}` : ''}
                         </SelectItem>
                       ))
                     )}
@@ -364,8 +364,8 @@ export default function Emprestimos() {
                       </SelectItem>
                     ) : (
                       exemplaresList.map((ex) => (
-                        <SelectItem key={ex.exemplar_id} value={String(ex.exemplar_id)}>
-                          Cód. {ex.exemplar_codigo_barras} (#{ex.exemplar_id})
+                        <SelectItem key={ex.id} value={String(ex.id)}>
+                          Cód. {ex.codigoBarras} (#{ex.id})
                         </SelectItem>
                       ))
                     )}
