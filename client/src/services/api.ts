@@ -268,7 +268,7 @@ export const emprestimos = {
     return data.data ?? data;
   },
   devolver: async (emprestimoId: number) => {
-    const { data } = await clientEmprestimo.post('/devolucoes', { emprestimo_id: emprestimoId });
+    const { data } = await clientEmprestimo.post('/devolucoes', { emprestimoId });
     return data.data ?? data;
   },
   listarAtrasados: async (): Promise<Emprestimo[]> => {
