@@ -16,14 +16,14 @@ import axios from 'axios';
 // Dev: proxy Vite intercepta /biblioteca/* e encaminha para:
 //      http://academico3.rj.senac.br/20261prj5/biblioteca/*
 // Prod: VITE_URL_* já apontam para academico3 com o prefixo completo.
-const API_PREFIX = import.meta.env.BASE_URL.replace(/\/$/, ''); // Removes trailing slash
+const isDev = import.meta.env.DEV;
 
 const BASE = {
-  usuario: import.meta.env.VITE_URL_USUARIO || `${API_PREFIX}/usuario`,
-  catalogo: import.meta.env.VITE_URL_CATALOGO || `${API_PREFIX}/catalogo`,
-  reserva: import.meta.env.VITE_URL_RESERVA || `${API_PREFIX}/reserva`,
-  relatorio: import.meta.env.VITE_URL_RELATORIO || `${API_PREFIX}/relatorio`,
-  emprestimo: import.meta.env.VITE_URL_EMPRESTIMO || `${API_PREFIX}/emprestimo`,
+  usuario: isDev ? '/biblioteca/usuario' : (import.meta.env.VITE_URL_USUARIO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/usuario'),
+  catalogo: isDev ? '/biblioteca/catalogo' : (import.meta.env.VITE_URL_CATALOGO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/catalogo'),
+  reserva: isDev ? '/biblioteca/reserva' : (import.meta.env.VITE_URL_RESERVA || 'http://academico3.rj.senac.br/20261prj5/biblioteca/reserva'),
+  relatorio: isDev ? '/biblioteca/relatorio' : (import.meta.env.VITE_URL_RELATORIO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/relatorio'),
+  emprestimo: isDev ? '/biblioteca/emprestimo' : (import.meta.env.VITE_URL_EMPRESTIMO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/emprestimo'),
 };
 
 // ─── Instâncias Axios por serviço ─────────────────────────────────────────────

@@ -10,8 +10,8 @@ const __dirname = path.dirname(__filename);
 // ─── Servidor público Senac ───────────────────────────────────────────────────
 // Todos os microsserviços estão atrás de um único reverse proxy:
 // http://academico3.rj.senac.br/20261prj5/biblioteca/{servico}/{rota}
-const ACADEMICO_BASE = process.env.API_BASE_URL || "http://academico3.rj.senac.br";
-const ACADEMICO_PREFIX = process.env.API_PREFIX ?? "/20261prj5";
+const ACADEMICO_BASE = "http://academico3.rj.senac.br";
+const ACADEMICO_PREFIX = "/20261prj5";
 
 async function startServer() {
   const app = express();
