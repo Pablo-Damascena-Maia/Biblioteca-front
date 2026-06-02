@@ -34,7 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, senha: string) => {
     const res = await auth.login(email, senha);
-    const { token, usuario } = res.data;
+    // auth.login já retorna data (corpo da resposta). O backend envolve em { success, data: { token, usuario } }
+    const { token, usuario } = res.data ?? res;
     localStorage.setItem('token', token);
     localStorage.setItem('usuario', JSON.stringify(usuario));
     setState({ token, usuario });

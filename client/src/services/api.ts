@@ -110,18 +110,27 @@ export interface Exemplar {
   livroId: number;
 }
 
+export interface ItemEmprestimo {
+  item_emprestimo_id: number;
+  emprestimo_id: number;
+  exemplar_id: number;
+  item_emprestimo_quantidade: number;
+}
+
 export interface Emprestimo {
   emprestimo_id: number;
   usuario_id: number;
-  livro_id: number;
-  exemplar_id: number;
   emprestimo_data_emprestimo: string;
-  emprestimo_data_devolucao_prevista: string;
-  emprestimo_data_devolucao_real?: string;
+  emprestimo_data_prevista_devolucao: string;
   emprestimo_status: 'Ativo' | 'Devolvido' | 'Atrasado';
-  emprestimo_multa_valor?: number;
+  itens: ItemEmprestimo[];
+  devolucao?: unknown;
+  // campos auxiliares usados localmente no front
   usuario?: { usuario_nome: string };
   livro?: { livro_titulo: string };
+  livro_id?: number;
+  exemplar_id?: number;
+  emprestimo_multa_valor?: number;
 }
 
 export interface Reserva {
@@ -254,7 +263,7 @@ export const emprestimos = {
     const { data } = await clientEmprestimo.get(`/emprestimos/${id}`);
     return data.data ?? data;
   },
-  criar: async (payload: { usuario_id: number; livro_id: number; exemplar_id: number }) => {
+  criar: async (payload: { usuarioId: number; livroId: number; exemplarId: number; dataPrevistaDevolucao?: string }) => {
     const { data } = await clientEmprestimo.post('/emprestimos', payload);
     return data.data ?? data;
   },

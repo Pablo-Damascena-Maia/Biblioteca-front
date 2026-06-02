@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -59,6 +60,7 @@ export default function Emprestimos() {
   const [selectedUsuario, setSelectedUsuario] = useState('');
   const [selectedLivro, setSelectedLivro] = useState('');
   const [selectedExemplar, setSelectedExemplar] = useState('');
+  const [selectedDataDevolucao, setSelectedDataDevolucao] = useState('');
   const [loadingExemplares, setLoadingExemplares] = useState(false);
 
   // ─── Estado do modal de confirmação de devolução ──────────────────────
@@ -83,6 +85,7 @@ export default function Emprestimos() {
     setSelectedUsuario('');
     setSelectedLivro('');
     setSelectedExemplar('');
+    setSelectedDataDevolucao('');
     setExemplaresList([]);
 
     try {
@@ -119,7 +122,7 @@ export default function Emprestimos() {
 
   // ─── Criar empréstimo ─────────────────────────────────────────────────
   const handleCriar = async () => {
-    if (!selectedUsuario || !selectedLivro || !selectedExemplar) {
+    if (!selectedUsuario || !selectedLivro || !selectedExemplar || !selectedDataDevolucao) {
       toast.error('Preencha todos os campos');
       return;
     }
@@ -127,9 +130,10 @@ export default function Emprestimos() {
     setSubmitting(true);
     try {
       const novo = await api.criar({
-        usuario_id: Number(selectedUsuario),
-        livro_id: Number(selectedLivro),
-        exemplar_id: Number(selectedExemplar),
+        usuarioId: Number(selectedUsuario),
+        livroId: Number(selectedLivro),
+        exemplarId: Number(selectedExemplar),
+        dataPrevistaDevolucao: selectedDataDevolucao,
       });
       // Adiciona o novo empréstimo ao estado local
       const usuarioSel = usuariosList.find((u) => u.usuario_id === Number(selectedUsuario));
@@ -200,11 +204,11 @@ export default function Emprestimos() {
           ) : lista.map((e) => (
             <tr key={e.emprestimo_id} className="border-b border-border hover:bg-secondary/50 transition-colors">
               <td className="py-4 px-4 text-foreground font-medium">{e.usuario?.usuario_nome ?? `ID ${e.usuario_id}`}</td>
-              <td className="py-4 px-4 text-muted-foreground">{e.livro?.livro_titulo ?? `Livro ${e.livro_id}`}</td>
+              <td className="py-4 px-4 text-muted-foreground">{e.livro?.livro_titulo ?? (e.itens?.length ? `Exemplar ${e.itens.map(i => i.exemplar_id).join(', ')}` : '—')}</td>
               <td className="py-4 px-4 text-muted-foreground">
                 <span className="flex items-center gap-2"><Calendar className="w-4 h-4" />{fmt(e.emprestimo_data_emprestimo)}</span>
               </td>
-              <td className="py-4 px-4 text-muted-foreground">{fmt(e.emprestimo_data_devolucao_prevista)}</td>
+              <td className="py-4 px-4 text-muted-foreground">{fmt(e.emprestimo_data_prevista_devolucao)}</td>
               <td className="py-4 px-4">
                 <Badge variant="outline" className={statusColor(e.emprestimo_status)}>
                   {e.emprestimo_status === 'Atrasado' && <AlertTriangle className="w-3 h-3 mr-1" />}
@@ -372,6 +376,19 @@ export default function Emprestimos() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Data de Devolução Prevista */}
+              <div className="space-y-2">
+                <Label htmlFor="input-data-devolucao">Data de Devolução Prevista</Label>
+                <Input
+                  id="input-data-devolucao"
+                  type="date"
+                  value={selectedDataDevolucao}
+                  onChange={(e) => setSelectedDataDevolucao(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full"
+                />
+              </div>
             </div>
           )}
 
@@ -381,7 +398,7 @@ export default function Emprestimos() {
             </Button>
             <Button
               onClick={handleCriar}
-              disabled={submitting || !selectedUsuario || !selectedLivro || !selectedExemplar}
+              disabled={submitting || !selectedUsuario || !selectedLivro || !selectedExemplar || !selectedDataDevolucao}
             >
               {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Registrar Empréstimo
