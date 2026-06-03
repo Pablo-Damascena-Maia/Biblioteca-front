@@ -24,42 +24,37 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  // ─── Proxies por microsserviço ────────────────────────────────────────────
-  // O front chama /api/usuario/auth/login  → proxy remove /api/usuario → backend recebe /auth/login
-  // O front chama /api/usuarios/...        → proxy remove /api/usuario → backend recebe /usuarios/...
-  // O front chama /api/catalogo/livros     → proxy remove /api/catalogo → backend recebe /livros
-  // etc.
-  //
-  // Em produção no Senac, se VITE_URL_* estiver definido, o front chama direto
-  // o backend (CORS) e NÃO passa pelo proxy Express. Mas mantemos o proxy como
-  // fallback para ambientes sem as variáveis.
+  // ─── Proxies e Rotas ──────────────────────────────────────────────────────
+  // Configuramos tudo em um Router para poder montar tanto no BASE_PATH (local)
+  // quanto na raiz (caso o proxy reverso do Senac/IIS remova o prefixo).
+
+  const appRouter = express.Router();
 
   const makeProxy = (prefix: string, target: string) =>
     createProxyMiddleware({
       target,
       changeOrigin: true,
-      pathRewrite: { [`^${BASE_PATH}/api/${prefix}`]: "" },
+      pathRewrite: { [`^.*/api/${prefix}`]: "" }, // Aceita com ou sem BASE_PATH
     });
 
-  app.use(`${BASE_PATH}/api/usuario`, makeProxy("usuario", SVC.usuario));
-  app.use(`${BASE_PATH}/api/catalogo`, makeProxy("catalogo", SVC.catalogo));
-  app.use(`${BASE_PATH}/api/reserva`, makeProxy("reserva", SVC.reserva));
-  app.use(`${BASE_PATH}/api/relatorio`, makeProxy("relatorio", SVC.relatorio));
-  app.use(`${BASE_PATH}/api/emprestimo`, makeProxy("emprestimo", SVC.emprestimo));
+  appRouter.use(`/api/usuario`, makeProxy("usuario", SVC.usuario));
+  appRouter.use(`/api/catalogo`, makeProxy("catalogo", SVC.catalogo));
+  appRouter.use(`/api/reserva`, makeProxy("reserva", SVC.reserva));
+  appRouter.use(`/api/relatorio`, makeProxy("relatorio", SVC.relatorio));
+  appRouter.use(`/api/emprestimo`, makeProxy("emprestimo", SVC.emprestimo));
 
   // ─── Arquivos estáticos do React ─────────────────────────────────────────
   const staticPath = path.resolve(__dirname, "public");
-  app.use(BASE_PATH, express.static(staticPath));
+  appRouter.use(express.static(staticPath));
 
-  // SPA fallback — qualquer rota dentro do base path devolve index.html
-  app.get(`${BASE_PATH}/*`, (_req, res) => {
+  // SPA fallback — qualquer rota devolve index.html
+  appRouter.get(`*`, (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
-  // Redirect raiz → base path (conveniência)
-  app.get("/", (_req, res) => {
-    res.redirect(`${BASE_PATH}/`);
-  });
+  // Monta o router em ambos os caminhos
+  app.use(BASE_PATH, appRouter);
+  app.use("/", appRouter);
 
   const port = Number(process.env.PORT || 9505);
   server.listen(port, "0.0.0.0", () => {
