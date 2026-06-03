@@ -139,11 +139,17 @@ export default function Emprestimos() {
 
     setSubmitting(true);
     try {
+      // Calcula diasPrazo a partir da data selecionada
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const dataDev = new Date(selectedDataDevolucao + 'T00:00:00');
+      const diasPrazo = Math.max(1, Math.round((dataDev.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)));
+
       const novo = await api.criar({
         usuarioId: Number(selectedUsuario),
         livroId: Number(selectedLivro),
         exemplarId: exemplarAuto.id,
-        dataPrevistaDevolucao: selectedDataDevolucao,
+        diasPrazo,
       });
       // Adiciona o novo empréstimo ao estado local
       const usuarioSel = usuariosList.find((u) => u.usuario_id === Number(selectedUsuario));

@@ -348,7 +348,7 @@ export const emprestimos = {
     const { data } = await clientEmprestimo.get(`/emprestimos/${id}`);
     return data.data ?? data;
   },
-  criar: async (payload: { usuarioId: number; livroId: number; exemplarId: number; dataPrevistaDevolucao?: string }) => {
+  criar: async (payload: { usuarioId: number; livroId: number; exemplarId: number; diasPrazo?: number }) => {
     const { data } = await clientEmprestimo.post('/emprestimos', payload);
     return data.data ?? data;
   },
