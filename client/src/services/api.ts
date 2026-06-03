@@ -22,13 +22,15 @@ import axios from 'axios';
 // Em prod, se VITE_URL_* estiver definido (ex: URL pública do Senac), usa diretamente.
 // Se não estiver definido, cai no proxy do Express (server/index.ts) via /api/{servico}.
 const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:9505';
+const basePath = import.meta.env.BASE_URL || '/'; // Vite injects base path here (e.g. "/20261prj5/biblioteca/")
+const cleanBasePath = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
 
 const BASE = {
-  usuario: import.meta.env.VITE_URL_USUARIO || `${origin}/api/usuario`,
-  catalogo: import.meta.env.VITE_URL_CATALOGO || `${origin}/api/catalogo`,
-  reserva: import.meta.env.VITE_URL_RESERVA || `${origin}/api/reserva`,
-  relatorio: import.meta.env.VITE_URL_RELATORIO || `${origin}/api/relatorio`,
-  emprestimo: import.meta.env.VITE_URL_EMPRESTIMO || `${origin}/api/emprestimo`,
+  usuario: import.meta.env.VITE_URL_USUARIO || `${origin}${cleanBasePath}/api/usuario`,
+  catalogo: import.meta.env.VITE_URL_CATALOGO || `${origin}${cleanBasePath}/api/catalogo`,
+  reserva: import.meta.env.VITE_URL_RESERVA || `${origin}${cleanBasePath}/api/reserva`,
+  relatorio: import.meta.env.VITE_URL_RELATORIO || `${origin}${cleanBasePath}/api/relatorio`,
+  emprestimo: import.meta.env.VITE_URL_EMPRESTIMO || `${origin}${cleanBasePath}/api/emprestimo`,
 };
 
 // ─── Instâncias Axios por serviço ─────────────────────────────────────────────

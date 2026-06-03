@@ -36,32 +36,32 @@ export default defineConfig({
 
     // Dev: proxy /api/{servico}/* → backend local na porta correspondente
     // Remove o prefixo /api/{servico} antes de repassar, igual ao server/index.ts de produção.
-    // Ex: /api/usuario/auth/login → http://localhost:9501/auth/login  ✓
+    // Ex: /20261prj5/biblioteca/api/usuario/auth/login → http://localhost:9501/auth/login  ✓
     proxy: {
-      "/api/usuario": {
+      "/20261prj5/biblioteca/api/usuario": {
         target: process.env.VITE_URL_USUARIO || "http://localhost:9501",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api\/usuario/, ""),
+        rewrite: (p) => p.replace(/^\/20261prj5\/biblioteca\/api\/usuario/, ""),
       },
-      "/api/catalogo": {
+      "/20261prj5/biblioteca/api/catalogo": {
         target: process.env.VITE_URL_CATALOGO || "http://localhost:9502",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api\/catalogo/, ""),
+        rewrite: (p) => p.replace(/^\/20261prj5\/biblioteca\/api\/catalogo/, ""),
       },
-      "/api/reserva": {
+      "/20261prj5/biblioteca/api/reserva": {
         target: process.env.VITE_URL_RESERVA || "http://localhost:9503",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api\/reserva/, ""),
+        rewrite: (p) => p.replace(/^\/20261prj5\/biblioteca\/api\/reserva/, ""),
       },
-      "/api/relatorio": {
+      "/20261prj5/biblioteca/api/relatorio": {
         target: process.env.VITE_URL_RELATORIO || "http://localhost:9504",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api\/relatorio/, ""),
+        rewrite: (p) => p.replace(/^\/20261prj5\/biblioteca\/api\/relatorio/, ""),
       },
-      "/api/emprestimo": {
+      "/20261prj5/biblioteca/api/emprestimo": {
         target: process.env.VITE_URL_EMPRESTIMO || "http://localhost:9500",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api\/emprestimo/, ""),
+        rewrite: (p) => p.replace(/^\/20261prj5\/biblioteca\/api\/emprestimo/, ""),
       },
     },
   },
