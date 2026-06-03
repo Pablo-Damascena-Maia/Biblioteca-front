@@ -54,12 +54,12 @@ export default function Emprestimos() {
   const [usuariosList, setUsuariosList] = useState<Usuario[]>([]);
   const [livrosList, setLivrosList] = useState<Livro[]>([]);
   const [exemplaresList, setExemplaresList] = useState<Exemplar[]>([]);
+  const [semExemplar, setSemExemplar] = useState(false);
   const [loadingModal, setLoadingModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [selectedUsuario, setSelectedUsuario] = useState('');
   const [selectedLivro, setSelectedLivro] = useState('');
-  const [selectedExemplar, setSelectedExemplar] = useState('');
   const [selectedDataDevolucao, setSelectedDataDevolucao] = useState('');
   const [loadingExemplares, setLoadingExemplares] = useState(false);
 
@@ -84,9 +84,9 @@ export default function Emprestimos() {
     setLoadingModal(true);
     setSelectedUsuario('');
     setSelectedLivro('');
-    setSelectedExemplar('');
     setSelectedDataDevolucao('');
     setExemplaresList([]);
+    setSemExemplar(false);
 
     try {
       const [u, l] = await Promise.all([apiUsuarios.listar(), apiLivros.listar()]);
@@ -102,17 +102,19 @@ export default function Emprestimos() {
   // ─── Ao selecionar um livro, carregar seus exemplares disponíveis ─────
   const handleLivroChange = async (livroId: string) => {
     setSelectedLivro(livroId);
-    setSelectedExemplar('');
     setExemplaresList([]);
+    setSemExemplar(false);
 
     if (!livroId) return;
 
     setLoadingExemplares(true);
     try {
       const ex = await apiExemplares.listarPorLivro(Number(livroId));
-      setExemplaresList(
-        Array.isArray(ex) ? ex.filter((e) => e.disponibilidade === 'Disponivel') : [],
-      );
+      const disponiveis = Array.isArray(ex) ? ex.filter((e) => e.disponibilidade === 'Disponivel') : [];
+      setExemplaresList(disponiveis);
+      if (disponiveis.length === 0) {
+        setSemExemplar(true);
+      }
     } catch {
       toast.error('Erro ao carregar exemplares');
     } finally {
@@ -122,17 +124,25 @@ export default function Emprestimos() {
 
   // ─── Criar empréstimo ─────────────────────────────────────────────────
   const handleCriar = async () => {
-    if (!selectedUsuario || !selectedLivro || !selectedExemplar || !selectedDataDevolucao) {
+    if (!selectedUsuario || !selectedLivro || !selectedDataDevolucao) {
       toast.error('Preencha todos os campos');
       return;
     }
+
+    if (exemplaresList.length === 0) {
+      toast.error('Nenhum exemplar disponível para este livro');
+      return;
+    }
+
+    // Pega automaticamente o primeiro exemplar disponível
+    const exemplarAuto = exemplaresList[0];
 
     setSubmitting(true);
     try {
       const novo = await api.criar({
         usuarioId: Number(selectedUsuario),
         livroId: Number(selectedLivro),
-        exemplarId: Number(selectedExemplar),
+        exemplarId: exemplarAuto.id,
         dataPrevistaDevolucao: selectedDataDevolucao,
       });
       // Adiciona o novo empréstimo ao estado local
@@ -285,7 +295,7 @@ export default function Emprestimos() {
           <DialogHeader>
             <DialogTitle>Novo Empréstimo</DialogTitle>
             <DialogDescription>
-              Selecione o usuário, livro e exemplar para registrar um novo empréstimo.
+              Selecione o usuário e livro para registrar um novo empréstimo. Um exemplar disponível será selecionado automaticamente.
             </DialogDescription>
           </DialogHeader>
 
@@ -342,40 +352,27 @@ export default function Emprestimos() {
                 </Select>
               </div>
 
-              {/* Exemplar */}
-              <div className="space-y-2">
-                <Label htmlFor="select-exemplar">Exemplar</Label>
-                <Select
-                  value={selectedExemplar}
-                  onValueChange={setSelectedExemplar}
-                  disabled={!selectedLivro || loadingExemplares}
-                >
-                  <SelectTrigger id="select-exemplar" className="w-full">
-                    <SelectValue
-                      placeholder={
-                        loadingExemplares
-                          ? 'Carregando exemplares...'
-                          : !selectedLivro
-                            ? 'Selecione um livro primeiro'
-                            : 'Selecione um exemplar'
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {exemplaresList.length === 0 ? (
-                      <SelectItem value="_empty" disabled>
-                        Nenhum exemplar disponível
-                      </SelectItem>
-                    ) : (
-                      exemplaresList.map((ex) => (
-                        <SelectItem key={ex.id} value={String(ex.id)}>
-                          Cód. {ex.codigoBarras} (#{ex.id})
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Info exemplar automático */}
+              {selectedLivro && !loadingExemplares && (
+                <div className="text-sm text-muted-foreground px-1">
+                  {semExemplar ? (
+                    <span className="text-red-600 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" />
+                      Nenhum exemplar disponível para este livro
+                    </span>
+                  ) : (
+                    <span className="text-green-600">
+                      ✓ {exemplaresList.length} exemplar(es) disponível(is) — um será selecionado automaticamente
+                    </span>
+                  )}
+                </div>
+              )}
+              {loadingExemplares && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground px-1">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Verificando exemplares disponíveis...
+                </div>
+              )}
 
               {/* Data de Devolução Prevista */}
               <div className="space-y-2">
@@ -398,7 +395,7 @@ export default function Emprestimos() {
             </Button>
             <Button
               onClick={handleCriar}
-              disabled={submitting || !selectedUsuario || !selectedLivro || !selectedExemplar || !selectedDataDevolucao}
+              disabled={submitting || !selectedUsuario || !selectedLivro || !selectedDataDevolucao || semExemplar || exemplaresList.length === 0}
             >
               {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Registrar Empréstimo
