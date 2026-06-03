@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Router as WouterRouter, Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -61,14 +61,16 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <AuthProvider>
-            <Toaster />
-            <Router />
-          </AuthProvider>
-        </TooltipProvider>
-      </ThemeProvider>
+      <WouterRouter base="/20261prj5/biblioteca">
+        <ThemeProvider defaultTheme="light">
+          <TooltipProvider>
+            <AuthProvider>
+              <Toaster />
+              <Router />
+            </AuthProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </WouterRouter>
     </ErrorBoundary>
   );
 }

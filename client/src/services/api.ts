@@ -1,29 +1,34 @@
 /**
  * services/api.ts
- * Camada central de comunicação com todos os microsserviços.
  *
- * Portas:
- * Usuário    → 9501  /usuarios  /auth
- * Catálogo   → 9502  /livros  /exemplares  /autores  /generos
- * Reserva    → 9503  /reservas
- * Relatório  → 9504  /reservas (relatórios)
- * Empréstimo → 9500  /biblioteca/emprestimos
+ * O front nunca chama os backends diretamente — sempre passa pelo proxy local:
+ *   Dev  (Vite):    /api/{servico}/*  →  proxy Vite  →  localhost:{porta}/*
+ *   Prod (Express): /api/{servico}/*  →  proxy Express (server/index.ts)  →  localhost:{porta}/*
+ *
+ * Dessa forma o backend sempre recebe a rota limpa, ex: /auth/login, /usuarios/:id
+ *
+ * Rotas do microsserviço de usuários (app.js):
+ *   prefix /auth     → POST /auth/login  /auth/refresh  /auth/validate
+ *   prefix /usuarios → GET|POST /usuarios   GET|PUT|DELETE /usuarios/:id
+ *                      PATCH /usuarios/:id/status  /cargo  /senha
+ *                      GET /usuarios/:id/logs  /exportar  /enderecos  /telefones
+ *                      GET /usuarios/busca/email   /filtro/inativos
  */
 
 import axios from 'axios';
 
 // ─── Base URLs ────────────────────────────────────────────────────────────────
-// Dev: proxy Vite intercepta /biblioteca/* e encaminha para:
-//      http://academico3.rj.senac.br/20261prj5/biblioteca/*
-// Prod: VITE_URL_* já apontam para academico3 com o prefixo completo.
-const isDev = import.meta.env.DEV;
+// Em dev (Vite), /api/{servico}/* é interceptado pelo proxy do vite.config.ts.
+// Em prod, se VITE_URL_* estiver definido (ex: URL pública do Senac), usa diretamente.
+// Se não estiver definido, cai no proxy do Express (server/index.ts) via /api/{servico}.
+const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:9505';
 
 const BASE = {
-  usuario: isDev ? '/biblioteca/usuario' : (import.meta.env.VITE_URL_USUARIO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/usuario'),
-  catalogo: isDev ? '/biblioteca/catalogo' : (import.meta.env.VITE_URL_CATALOGO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/catalogo'),
-  reserva: isDev ? '/biblioteca/reserva' : (import.meta.env.VITE_URL_RESERVA || 'http://academico3.rj.senac.br/20261prj5/biblioteca/reserva'),
-  relatorio: isDev ? '/biblioteca/relatorio' : (import.meta.env.VITE_URL_RELATORIO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/relatorio'),
-  emprestimo: isDev ? '/biblioteca/emprestimo' : (import.meta.env.VITE_URL_EMPRESTIMO || 'http://academico3.rj.senac.br/20261prj5/biblioteca/emprestimo'),
+  usuario: import.meta.env.VITE_URL_USUARIO || `${origin}/api/usuario`,
+  catalogo: import.meta.env.VITE_URL_CATALOGO || `${origin}/api/catalogo`,
+  reserva: import.meta.env.VITE_URL_RESERVA || `${origin}/api/reserva`,
+  relatorio: import.meta.env.VITE_URL_RELATORIO || `${origin}/api/relatorio`,
+  emprestimo: import.meta.env.VITE_URL_EMPRESTIMO || `${origin}/api/emprestimo`,
 };
 
 // ─── Instâncias Axios por serviço ─────────────────────────────────────────────
@@ -36,15 +41,10 @@ const clientReserva = makeClient(BASE.reserva);
 const clientRelatorio = makeClient(BASE.relatorio);
 const clientEmprestimo = makeClient(BASE.emprestimo);
 
-// Interceptor: injeta token JWT em todas as requisições (EXCETO no /health)
+// Interceptor: injeta token JWT (exceto /health)
 [clientUsuario, clientCatalogo, clientReserva, clientRelatorio, clientEmprestimo].forEach((c) => {
   c.interceptors.request.use((config) => {
-    // Se a requisição for para o endpoint de health, não injetamos o Authorization.
-    // Isso evita o envio de preflight OPTIONS complexo que quebra o CORS em rotas públicas.
-    if (config.url?.endsWith('/health')) {
-      return config;
-    }
-
+    if (config.url?.endsWith('/health')) return config;
     const token = localStorage.getItem('token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
@@ -64,15 +64,8 @@ export interface Usuario {
   telefone?: { telefone_numero: string };
 }
 
-export interface Autor {
-  id: number;
-  nome: string;
-}
-
-export interface Genero {
-  id: number;
-  nome: string;
-}
+export interface Autor { id: number; nome: string; }
+export interface Genero { id: number; nome: string; }
 
 export interface Livro {
   id: number;
@@ -83,7 +76,7 @@ export interface Livro {
   sinopse?: string;
   numeroPaginas?: number;
   idioma?: string;
-  status?: number; // 1 = Ativo, 0 = Inativo
+  status?: number;
   autores?: { autor: Autor }[];
   generos?: { genero: Genero }[];
   exemplares?: Exemplar[];
@@ -125,7 +118,6 @@ export interface Emprestimo {
   emprestimo_status: 'Ativo' | 'Devolvido' | 'Atrasado';
   itens: ItemEmprestimo[];
   devolucao?: unknown;
-  // campos auxiliares usados localmente no front
   usuario?: { usuario_nome: string };
   livro?: { livro_titulo: string };
   livro_id?: number;
@@ -152,19 +144,25 @@ export interface DashboardKpis {
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
+// front → /api/usuario/auth/login → proxy strip /api/usuario → backend recebe /auth/login  ✓
 
 export const auth = {
   login: async (email: string, senha: string) => {
     const { data } = await clientUsuario.post('/auth/login', { email, senha });
-    return data; // { success, data: { token, usuario } }
+    return data;
   },
   refresh: async (token: string) => {
     const { data } = await clientUsuario.post('/auth/refresh', { token });
     return data;
   },
+  validarToken: async (token: string) => {
+    const { data } = await clientUsuario.post('/auth/validate', { token });
+    return data;
+  },
 };
 
 // ─── USUÁRIOS ─────────────────────────────────────────────────────────────────
+// front → /api/usuario/usuarios → proxy → backend recebe /usuarios  ✓
 
 export const usuarios = {
   listar: async (): Promise<Usuario[]> => {
@@ -191,12 +189,52 @@ export const usuarios = {
     const { data } = await clientUsuario.delete(`/usuarios/${id}`);
     return data;
   },
+  buscarPorEmail: async (email: string): Promise<Usuario> => {
+    const { data } = await clientUsuario.get('/usuarios/busca/email', { params: { email } });
+    return data.data ?? data;
+  },
   listarInativos: async (): Promise<Usuario[]> => {
     const { data } = await clientUsuario.get('/usuarios/filtro/inativos');
     return data.data ?? data;
   },
   atualizarCargo: async (id: number, tipo: string) => {
     const { data } = await clientUsuario.patch(`/usuarios/${id}/cargo`, { tipo });
+    return data.data ?? data;
+  },
+  obterLogs: async (id: number) => {
+    const { data } = await clientUsuario.get(`/usuarios/${id}/logs`);
+    return data.data ?? data;
+  },
+  exportarDados: async (id: number) => {
+    const response = await clientUsuario.get(`/usuarios/${id}/exportar`, { responseType: 'blob' });
+    return response.data;
+  },
+  listarEnderecos: async (id: number) => {
+    const { data } = await clientUsuario.get(`/usuarios/${id}/enderecos`);
+    return data.data ?? data;
+  },
+  atualizarEndereco: async (id: number, payload: object) => {
+    const { data } = await clientUsuario.put(`/usuarios/${id}/endereco`, payload);
+    return data.data ?? data;
+  },
+  limparEndereco: async (id: number) => {
+    const { data } = await clientUsuario.delete(`/usuarios/${id}/endereco`);
+    return data;
+  },
+  listarTelefones: async (id: number) => {
+    const { data } = await clientUsuario.get(`/usuarios/${id}/telefones`);
+    return data.data ?? data;
+  },
+  atualizarTelefone: async (id: number, payload: object) => {
+    const { data } = await clientUsuario.put(`/usuarios/${id}/telefone`, payload);
+    return data.data ?? data;
+  },
+  limparTelefone: async (id: number) => {
+    const { data } = await clientUsuario.delete(`/usuarios/${id}/telefone`);
+    return data;
+  },
+  alterarSenha: async (id: number, payload: { senha_atual: string; nova_senha: string }) => {
+    const { data } = await clientUsuario.patch(`/usuarios/${id}/senha`, payload);
     return data.data ?? data;
   },
 };
@@ -229,6 +267,18 @@ export const autores = {
     const { data } = await clientCatalogo.get('/autores');
     return data.data ?? data;
   },
+  obterPorId: async (id: number): Promise<Autor> => {
+    const { data } = await clientCatalogo.get(`/autores/${id}`);
+    return data.data ?? data;
+  },
+  criar: async (payload: { nome: string; dataNascimento?: string; nacionalidade?: string; biografia?: string }) => {
+    const { data } = await clientCatalogo.post('/autores', payload);
+    return data.data ?? data;
+  },
+  alterarStatus: async (id: number, status: number) => {
+    const { data } = await clientCatalogo.patch(`/autores/${id}/status`, { status });
+    return data.data ?? data;
+  },
 };
 
 // ─── CATÁLOGO — GÊNEROS ───────────────────────────────────────────────────────
@@ -236,6 +286,18 @@ export const autores = {
 export const generos = {
   listar: async (): Promise<Genero[]> => {
     const { data } = await clientCatalogo.get('/generos');
+    return data.data ?? data;
+  },
+  obterPorId: async (id: number): Promise<Genero> => {
+    const { data } = await clientCatalogo.get(`/generos/${id}`);
+    return data.data ?? data;
+  },
+  criar: async (payload: { nome: string; descricao?: string }) => {
+    const { data } = await clientCatalogo.post('/generos', payload);
+    return data.data ?? data;
+  },
+  alterarStatus: async (id: number, status: number) => {
+    const { data } = await clientCatalogo.patch(`/generos/${id}/status`, { status });
     return data.data ?? data;
   },
 };
@@ -247,13 +309,36 @@ export const exemplares = {
     const { data } = await clientCatalogo.get(`/exemplares?livro_id=${livroId}`);
     return data.data ?? data;
   },
+  listar: async (filtros?: { disponibilidade?: string }): Promise<Exemplar[]> => {
+    const { data } = await clientCatalogo.get('/exemplares', { params: filtros });
+    return data.data ?? data;
+  },
   obterPorId: async (id: number): Promise<Exemplar> => {
     const { data } = await clientCatalogo.get(`/exemplares/${id}`);
+    return data.data ?? data;
+  },
+  // POST /livros/:livroId/exemplares  — o backend vincula o exemplar ao livro pelo path param
+  adicionar: async (livroId: number, payload: {
+    codigoBarras: string;
+    condicao?: 'Novo' | 'Bom' | 'Regular' | 'Desgastado';
+    statusDisponibilidade?: 'Disponivel' | 'Emprestado' | 'Manutencao' | 'Perdido';
+    dataAquisicao: string;
+  }) => {
+    const { data } = await clientCatalogo.post(`/livros/${livroId}/exemplares`, payload);
+    return data.data ?? data;
+  },
+  // PATCH /exemplares/:id/status
+  alterarStatus: async (id: number, payload: {
+    condicao?: 'Novo' | 'Bom' | 'Regular' | 'Desgastado';
+    disponibilidade?: 'Disponivel' | 'Emprestado' | 'Manutencao' | 'Perdido';
+  }) => {
+    const { data } = await clientCatalogo.patch(`/exemplares/${id}/status`, payload);
     return data.data ?? data;
   },
 };
 
 // ─── EMPRÉSTIMOS ──────────────────────────────────────────────────────────────
+
 export const emprestimos = {
   listar: async (): Promise<Emprestimo[]> => {
     const { data } = await clientEmprestimo.get('/emprestimos');
@@ -278,43 +363,34 @@ export const emprestimos = {
 };
 
 // ─── RESERVAS ─────────────────────────────────────────────────────────────────
-// O backend registra todas as rotas sob o prefixo /biblioteca/reserva
-// Exemplo: GET /biblioteca/reserva/listar-ativas
 
 export const reservas = {
-  // clientReserva.baseURL = '/biblioteca/reserva'
-  // Proxy: /biblioteca/reserva/* → academico3.rj.senac.br/20261prj5/biblioteca/reserva/*
-  // O backend da Reserva registra rotas como: /biblioteca/reserva/listar-ativas, etc.
-  // Axios combina baseURL + path: /biblioteca/reserva + /biblioteca/reserva/x = /biblioteca/reserva/biblioteca/reserva/x ❌
-  // Solução: paths devem ser relativos (sem / inicial): biblioteca/reserva/<sufixo>
   listarAtivas: async (): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get('biblioteca/reserva/listar-ativas');
+    const { data } = await clientReserva.get('/listar-ativas');
     return data.data ?? data;
   },
   obterPorId: async (id: number): Promise<Reserva> => {
-    const { data } = await clientReserva.get(`biblioteca/reserva/listar/${id}`);
+    const { data } = await clientReserva.get(`/listar/${id}`);
     return data.data ?? data;
   },
   criar: async (payload: { usuario_id: number; livro_id: number }) => {
-    const { data } = await clientReserva.post('biblioteca/reserva/criar', payload);
+    const { data } = await clientReserva.post('/criar', payload);
     return data.data ?? data;
   },
   cancelar: async (id: number) => {
-    const { data } = await clientReserva.patch(`biblioteca/reserva/atualizar-status/${id}`, {
-      reserva_status: 'Cancelada',
-    });
+    const { data } = await clientReserva.patch(`/atualizar-status/${id}`, { reserva_status: 'Cancelada' });
     return data.data ?? data;
   },
   buscarPorUsuario: async (usuarioId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`biblioteca/reserva/usuario/listar/${usuarioId}`);
+    const { data } = await clientReserva.get(`/usuario/listar/${usuarioId}`);
     return data.data ?? data;
   },
   filaDoLivro: async (livroId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`biblioteca/reserva/livro/listar-fila/${livroId}`);
+    const { data } = await clientReserva.get(`/livro/listar-fila/${livroId}`);
     return data.data ?? data;
   },
   contarPendentes: async (): Promise<number> => {
-    const { data } = await clientReserva.get('biblioteca/reserva/metricas/pendentes');
+    const { data } = await clientReserva.get('/metricas/pendentes');
     return data.data?.total ?? data.total ?? 0;
   },
 };
@@ -339,14 +415,12 @@ export const relatorios = {
     return data.data ?? data;
   },
   exportarCSV: async () => {
-    const response = await clientRelatorio.get('/reservas/exportar/csv', {
-      responseType: 'blob',
-    });
+    const response = await clientRelatorio.get('/reservas/exportar/csv', { responseType: 'blob' });
     return response.data;
   },
 };
 
-// ─── HEALTHCHECK DOS MICROSSERVIÇOS ──────────────────────────────────────────
+// ─── HEALTHCHECK ─────────────────────────────────────────────────────────────
 
 async function ping(client: ReturnType<typeof makeClient>, path = '/health'): Promise<boolean> {
   try {
@@ -361,9 +435,8 @@ export async function checkServicos() {
   const [catalogo, usuario, emprestimo, reserva] = await Promise.all([
     ping(clientCatalogo),
     ping(clientUsuario),
-    ping(clientEmprestimo),   // GET /health
-    // Reserva não tem /health — usa rota real com path relativo
-    ping(clientReserva, 'biblioteca/reserva/listar-ativas'),
+    ping(clientEmprestimo),
+    ping(clientReserva, '/listar-ativas'),
   ]);
   return { catalogo, usuario, emprestimo, reserva };
 }
