@@ -12,6 +12,9 @@ RUN npm install
 # Copia o restante do código
 COPY . .
 
+# Garante que o .env está disponível para o Vite (VITE_* são embeddados no build)
+# O COPY . . acima já inclui o .env, mas deixamos explícito aqui.
+
 # Gera o bundle estático em dist/public
 RUN npm run build
 
@@ -26,6 +29,9 @@ RUN npm install --omit=dev
 
 # Copia o bundle do React e o servidor Express compilado
 COPY --from=builder /app/dist ./dist
+
+# Copia .env.production para que o Express leia VITE_URL_* em runtime (fallback dos proxies)
+COPY .env.production .env
 
 EXPOSE 9505
 

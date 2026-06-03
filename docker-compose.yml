@@ -8,6 +8,8 @@ services:
     container_name: biblioteca-front
     ports:
       - "9505:9505"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - PORT=9505
