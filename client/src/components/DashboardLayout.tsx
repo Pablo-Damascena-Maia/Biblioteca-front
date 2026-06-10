@@ -10,11 +10,12 @@ import {
   BookMarked,
   Menu,
   X,
-  ChevronRight,
-  ChevronLeft,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -23,10 +24,9 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location] = useLocation();
   const { logout, usuario, isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Leitores não veem Usuários nem Relatórios
   const allNavItems = [
     { href: '/', label: 'Dashboard', icon: Home, adminOnly: false },
     { href: '/catalogo', label: 'Catálogo', icon: BookOpen, adminOnly: false },
@@ -42,130 +42,152 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     ? usuario.usuario_nome.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
     : '?';
 
-  const NavLinks = ({ collapsed = false }: { collapsed?: boolean }) => (
-    <nav className={cn("flex-1 px-3 py-4 space-y-1", collapsed ? "px-2" : "px-3")}>
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        const isActive = location === item.href;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileOpen(false)}
-            className={cn(
-              'group flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-              collapsed ? 'justify-center px-0' : 'px-3',
-              isActive
-                ? 'bg-white/15 text-white shadow-sm'
-                : 'text-white/70 hover:bg-white/10 hover:text-white'
-            )}
-            title={collapsed ? item.label : undefined}
-          >
-            <Icon className={cn("shrink-0", collapsed ? "w-5 h-5" : "w-4 h-4")} />
-            {!collapsed && <span className="flex-1 whitespace-nowrap">{item.label}</span>}
-            {!collapsed && isActive && <ChevronRight className="w-3 h-3 opacity-60 shrink-0" />}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* Sidebar desktop */}
-      <aside className={cn(
-        "hidden md:flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border shrink-0 transition-all duration-300",
-        isCollapsed ? "w-20" : "w-64"
-      )}>
-        {/* Logo */}
-        <div className={cn("py-5 border-b border-white/10 flex items-center", isCollapsed ? "justify-center px-0" : "px-5")}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0 shadow-sm">
-              <BookOpen className="w-4 h-4 text-white" />
-            </div>
-            {!isCollapsed && (
-              <div className="overflow-hidden whitespace-nowrap">
-                <p className="text-sm font-bold text-white leading-none">Biblioteca</p>
-                <p className="text-xs text-white/50 mt-0.5">Sistema Digital</p>
+    <div className="min-h-screen bg-background">
+      {/* ─── Top Navbar ─────────────────────────────────────────────────── */}
+      <header className="fixed top-0 left-0 right-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
+                <BookOpen className="w-4 h-4 text-primary-foreground" />
               </div>
-            )}
-          </div>
-        </div>
+              <span className="font-bold text-sm text-foreground hidden sm:block">Biblioteca</span>
+            </Link>
 
-        <NavLinks collapsed={isCollapsed} />
+            {/* Desktop Nav Links */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200',
+                      isActive
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                    {/* Active indicator */}
+                    {isActive && (
+                      <span className="absolute -bottom-[13px] left-3 right-3 h-[2px] bg-primary rounded-full" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
 
-        {/* User + logout */}
-        <div className={cn("py-4 border-t border-white/10 space-y-2 flex flex-col", isCollapsed ? "px-2 items-center" : "px-4")}>
-          {usuario && (
-            <div className={cn("flex items-center gap-3 rounded-lg", isCollapsed ? "justify-center" : "px-2 py-1")}>
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-sm" title={isCollapsed ? usuario.usuario_nome : undefined}>
-                {initials}
-              </div>
-              {!isCollapsed && (
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-white truncate">{usuario.usuario_nome}</p>
-                  <p className="text-xs text-white/50 truncate">{usuario.usuario_tipo}</p>
+            {/* Right section: theme toggle + user + logout */}
+            <div className="flex items-center gap-2">
+              {/* Dark mode toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </button>
+
+              {/* User info (desktop) */}
+              {usuario && (
+                <div className="hidden md:flex items-center gap-2 pl-2 border-l border-border/60">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                    {initials}
+                  </div>
+                  <div className="hidden lg:block">
+                    <p className="text-xs font-medium text-foreground leading-none">{usuario.usuario_nome}</p>
+                    <p className="text-[10px] text-muted-foreground">{usuario.usuario_tipo}</p>
+                  </div>
                 </div>
               )}
-            </div>
-          )}
-          <button
-            onClick={logout}
-            className={cn(
-              "flex items-center gap-3 py-2.5 rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200",
-              isCollapsed ? "justify-center px-0 w-full" : "px-3 w-full"
-            )}
-            title={isCollapsed ? "Sair" : undefined}
-          >
-            <LogOut className={cn("shrink-0", isCollapsed ? "w-5 h-5" : "w-4 h-4")} />
-            {!isCollapsed && <span className="font-medium">Sair</span>}
-          </button>
-        </div>
 
-        {/* Toggle Button */}
-        <div className="border-t border-white/10 p-2 flex justify-center">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-md text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-            title={isCollapsed ? "Expandir" : "Recolher"}
-          >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile topbar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 bg-sidebar text-white px-4 py-3 flex items-center justify-between border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5" />
-          <span className="font-bold text-sm">Biblioteca</span>
-        </div>
-        <button onClick={() => setMobileOpen((v) => !v)} className="p-1">
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
-
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-20 pt-14">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-60 h-full bg-sidebar flex flex-col">
-            <NavLinks />
-            <div className="px-3 py-4 border-t border-white/10">
+              {/* Logout (desktop) */}
               <button
-                onClick={() => { logout(); setMobileOpen(false); }}
-                className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-white/70 hover:bg-white/10 hover:text-white transition-all"
+                onClick={logout}
+                className="hidden md:flex items-center gap-1.5 p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title="Sair"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="font-medium">Sair</span>
+              </button>
+
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setMobileOpen((v) => !v)}
+                className="md:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
-          </aside>
+          </div>
         </div>
+      </header>
+
+      {/* ─── Mobile Drawer ──────────────────────────────────────────────── */}
+      {mobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          {/* Drawer panel */}
+          <div className="md:hidden fixed top-14 left-0 right-0 z-30 bg-background border-b border-border shadow-lg animate-in slide-in-from-top-2 duration-200">
+            <nav className="px-4 py-3 space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Mobile user + logout */}
+            <div className="px-4 py-3 border-t border-border/60">
+              {usuario && (
+                <div className="flex items-center gap-3 mb-3 px-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                    {initials}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{usuario.usuario_nome}</p>
+                    <p className="text-xs text-muted-foreground">{usuario.usuario_tipo}</p>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => { logout(); setMobileOpen(false); }}
+                className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Main content */}
-      <main className="flex-1 overflow-auto md:pt-0 pt-14">
+      {/* ─── Main Content ───────────────────────────────────────────────── */}
+      <main className="pt-14">
         <div className="p-6 md:p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>

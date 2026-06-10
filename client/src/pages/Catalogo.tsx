@@ -57,11 +57,11 @@ export default function Catalogo() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 page-enter">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Catálogo de Livros</h1>
-            <p className="text-muted-foreground">Gerenciar livros e exemplares da biblioteca</p>
+            <h1 className="text-3xl font-bold text-foreground">Catálogo de Livros</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gerenciar livros e exemplares da biblioteca</p>
           </div>
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -117,7 +117,7 @@ export default function Catalogo() {
                         </td>
 
                         <td className="py-4 px-4">
-                          <Badge variant="outline" className={livro.status === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-600 border-gray-200'}>
+                          <Badge variant="outline" className={livro.status === 1 ? 'badge-blue' : 'badge-gray'}>
                             {livro.status === 1 ? 'Ativo' : 'Inativo'}
                           </Badge>
                         </td>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, Users, BarChart3, AlertCircle, Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { cn } from '@/lib/utils';
 import { emprestimos, reservas, usuarios, livros, checkServicos } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -69,10 +70,10 @@ export default function Dashboard() {
   }, []);
 
   const stats = [
-    { title: 'Total de Livros',      value: kpis.totalLivros,       icon: <BookOpen  className="w-6 h-6" />, color: 'text-blue-600'   },
-    { title: 'Usuários Ativos',      value: kpis.usuariosAtivos,    icon: <Users     className="w-6 h-6" />, color: 'text-green-600'  },
-    { title: 'Empréstimos Ativos',   value: kpis.emprestimosAtivos, icon: <BarChart3 className="w-6 h-6" />, color: 'text-purple-600' },
-    { title: 'Reservas Pendentes',   value: kpis.reservasPendentes, icon: <AlertCircle className="w-6 h-6" />, color: 'text-orange-600' },
+    { title: 'Total de Livros',      value: kpis.totalLivros,       icon: <BookOpen  className="w-5 h-5" />, color: 'stat-blue',   bg: 'bg-blue-100 dark:bg-blue-900/30' },
+    { title: 'Usuários Ativos',      value: kpis.usuariosAtivos,    icon: <Users     className="w-5 h-5" />, color: 'stat-green',  bg: 'bg-green-100 dark:bg-green-900/30' },
+    { title: 'Empréstimos Ativos',   value: kpis.emprestimosAtivos, icon: <BarChart3 className="w-5 h-5" />, color: 'stat-purple', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+    { title: 'Reservas Pendentes',   value: kpis.reservasPendentes, icon: <AlertCircle className="w-5 h-5" />, color: 'stat-orange', bg: 'bg-orange-100 dark:bg-orange-900/30' },
   ];
 
   const servicos = [
@@ -84,10 +85,10 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 page-enter">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">Bem-vindo ao sistema de gerenciamento da biblioteca</p>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">Bem-vindo ao sistema de gerenciamento da biblioteca</p>
         </div>
 
         {loading ? (
@@ -101,7 +102,7 @@ export default function Dashboard() {
                 <Card key={stat.title} className="card-premium">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                    <div className={stat.color}>{stat.icon}</div>
+                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', stat.bg, stat.color)}>{stat.icon}</div>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stat.value.toLocaleString('pt-BR')}</div>
@@ -143,7 +144,7 @@ export default function Dashboard() {
                     <div key={s.nome} className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">{s.nome}</span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        s.online ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        s.online ? 'badge-green' : 'badge-red'
                       }`}>
                         {s.online ? 'Online' : 'Offline'}
                       </span>

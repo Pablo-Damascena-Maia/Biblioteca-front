@@ -139,12 +139,12 @@ export default function Usuarios() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 page-enter">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-1">Usuários</h1>
-            <p className="text-muted-foreground">Gestão de usuários do sistema</p>
+            <h1 className="text-3xl font-bold text-foreground">Usuários</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gestão de usuários do sistema</p>
           </div>
           {isAdmin && (
             <Button
@@ -159,10 +159,10 @@ export default function Usuarios() {
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Total', value: data.length, icon: <Mail className="w-5 h-5" />, color: 'text-foreground' },
-            { label: 'Ativos', value: ativos, icon: <UserCheck className="w-5 h-5" />, color: 'text-green-600' },
-            { label: 'Inativos', value: inativos, icon: <UserX className="w-5 h-5" />, color: 'text-orange-500' },
-            { label: 'Bibliotecários', value: bibliotecarios, icon: <Shield className="w-5 h-5" />, color: 'text-purple-600' },
+            { label: 'Total', value: data.length, icon: <Mail className="w-5 h-5" />, color: 'stat-blue' },
+            { label: 'Ativos', value: ativos, icon: <UserCheck className="w-5 h-5" />, color: 'stat-green' },
+            { label: 'Inativos', value: inativos, icon: <UserX className="w-5 h-5" />, color: 'stat-orange' },
+            { label: 'Bibliotecários', value: bibliotecarios, icon: <Shield className="w-5 h-5" />, color: 'stat-purple' },
           ].map((s) => (
             <Card key={s.label} className="card-premium">
               <CardContent className="pt-5 flex items-center gap-4">
@@ -240,8 +240,8 @@ export default function Usuarios() {
                             variant="outline"
                             className={
                               u.usuario_tipo === 'Bibliotecario'
-                                ? 'bg-purple-50 text-purple-700 border-purple-200 gap-1'
-                                : 'bg-blue-50 text-blue-700 border-blue-200 gap-1'
+                                ? 'badge-purple gap-1'
+                                : 'badge-blue gap-1'
                             }
                           >
                             {u.usuario_tipo === 'Bibliotecario' ? (
@@ -256,10 +256,10 @@ export default function Usuarios() {
                             variant="outline"
                             className={
                               u.usuario_status === 'Ativo'
-                                ? 'bg-green-50 text-green-700 border-green-200'
+                                ? 'badge-green'
                                 : u.usuario_status === 'Bloqueado'
-                                  ? 'bg-red-50 text-red-700 border-red-200'
-                                  : 'bg-orange-50 text-orange-700 border-orange-200'
+                                  ? 'badge-red'
+                                  : 'badge-orange'
                             }
                           >
                             {u.usuario_status}

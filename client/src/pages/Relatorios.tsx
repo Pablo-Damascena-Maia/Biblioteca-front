@@ -54,19 +54,19 @@ export default function Relatorios() {
   };
 
   const cards: KpiCard[] = [
-    { label: 'Total de Livros', value: kpis.totalLivros ?? '—', icon: BookOpen, color: 'text-blue-600' },
-    { label: 'Usuários Ativos', value: kpis.usuariosAtivos ?? '—', icon: Users, color: 'text-green-600' },
-    { label: 'Empréstimos Ativos', value: kpis.emprestimosAtivos ?? '—', icon: TrendingUp, color: 'text-purple-600' },
-    { label: 'Total de Multas', value: kpis.multasTotal != null ? `R$ ${Number(kpis.multasTotal).toFixed(2).replace('.', ',')}` : '—', icon: DollarSign, color: 'text-orange-600' },
+    { label: 'Total de Livros', value: kpis.totalLivros ?? '—', icon: BookOpen, color: 'stat-blue' },
+    { label: 'Usuários Ativos', value: kpis.usuariosAtivos ?? '—', icon: Users, color: 'stat-green' },
+    { label: 'Empréstimos Ativos', value: kpis.emprestimosAtivos ?? '—', icon: TrendingUp, color: 'stat-purple' },
+    { label: 'Total de Multas', value: kpis.multasTotal != null ? `R$ ${Number(kpis.multasTotal).toFixed(2).replace('.', ',')}` : '—', icon: DollarSign, color: 'stat-orange' },
   ];
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 page-enter">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Relatórios</h1>
-            <p className="text-muted-foreground">Visão consolidada do sistema</p>
+            <h1 className="text-3xl font-bold text-foreground">Relatórios</h1>
+            <p className="text-sm text-muted-foreground mt-1">Visão consolidada do sistema</p>
           </div>
           <Button onClick={handleExportarCSV} disabled={exportando} variant="outline">
             {exportando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
@@ -127,7 +127,7 @@ export default function Relatorios() {
                       {inadimplentes.slice(0, 5).map((u: any, i: number) => (
                         <div key={i} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                           <span className="text-sm font-medium text-foreground">{u.nome || u.usuario_nome || `Usuário ${u.usuario_id}`}</span>
-                          <span className="text-sm font-bold text-red-600">
+                          <span className="text-sm font-bold stat-red">
                             {u.multa != null ? `R$ ${Number(u.multa).toFixed(2).replace('.', ',')}` : 'Pendente'}
                           </span>
                         </div>

@@ -35,9 +35,9 @@ import {
 import { toast } from 'sonner';
 
 function statusColor(s: string) {
-  if (s === 'Ativo') return 'bg-blue-50 text-blue-700 border-blue-200';
-  if (s === 'Atrasado') return 'bg-red-50 text-red-700 border-red-200';
-  return 'bg-green-50 text-green-700 border-green-200';
+  if (s === 'Ativo') return 'badge-blue';
+  if (s === 'Atrasado') return 'badge-red';
+  return 'badge-green';
 }
 
 function fmt(d?: string) {
@@ -247,11 +247,11 @@ export default function Emprestimos() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 page-enter">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Empréstimos</h1>
-            <p className="text-muted-foreground">Gerenciar empréstimos e devoluções</p>
+            <h1 className="text-3xl font-bold text-foreground">Empréstimos</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gerenciar empréstimos e devoluções</p>
           </div>
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90"
@@ -264,8 +264,8 @@ export default function Emprestimos() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { label: 'Empréstimos Ativos', value: loading ? '—' : ativos.length, color: '' },
-            { label: 'Atrasados', value: loading ? '—' : atrasados.length, color: 'text-red-600' },
-            { label: 'Multas Pendentes', value: loading ? '—' : `R$ ${multaTotal.toFixed(2).replace('.', ',')}`, color: 'text-orange-600' },
+            { label: 'Atrasados', value: loading ? '—' : atrasados.length, color: 'stat-red' },
+            { label: 'Multas Pendentes', value: loading ? '—' : `R$ ${multaTotal.toFixed(2).replace('.', ',')}`, color: 'stat-orange' },
           ].map((s) => (
             <Card key={s.label} className="card-premium">
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle></CardHeader>

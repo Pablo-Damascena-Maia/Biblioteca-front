@@ -62,7 +62,7 @@ function App() {
   return (
     <ErrorBoundary>
       <WouterRouter base="/20261prj5/biblioteca">
-        <ThemeProvider defaultTheme="light">
+        <ThemeProvider defaultTheme="light" switchable>
           <TooltipProvider>
             <AuthProvider>
               <Toaster />

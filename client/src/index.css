@@ -158,8 +158,78 @@
     @apply bg-card text-card-foreground rounded-xl border border-border/50 shadow-sm transition-all duration-300;
   }
   .card-premium:hover {
-    @apply shadow-md border-border;
+    @apply shadow-md border-border -translate-y-0.5;
   }
+
+  /* Alternating table row background */
+  tbody tr:nth-child(even) td {
+    @apply bg-muted/20;
+  }
+
+  /* Page entry animation */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .page-enter {
+    animation: fadeInUp 0.4s ease-out;
+  }
+
+  /* Dark-mode-safe badge colors */
+  .badge-blue {
+    @apply bg-blue-50 text-blue-700 border-blue-200;
+  }
+  .dark .badge-blue {
+    @apply bg-blue-950/50 text-blue-300 border-blue-800;
+  }
+  .badge-green {
+    @apply bg-green-50 text-green-700 border-green-200;
+  }
+  .dark .badge-green {
+    @apply bg-green-950/50 text-green-300 border-green-800;
+  }
+  .badge-red {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+  .dark .badge-red {
+    @apply bg-red-950/50 text-red-300 border-red-800;
+  }
+  .badge-orange {
+    @apply bg-orange-50 text-orange-700 border-orange-200;
+  }
+  .dark .badge-orange {
+    @apply bg-orange-950/50 text-orange-300 border-orange-800;
+  }
+  .badge-purple {
+    @apply bg-purple-50 text-purple-700 border-purple-200;
+  }
+  .dark .badge-purple {
+    @apply bg-purple-950/50 text-purple-300 border-purple-800;
+  }
+  .badge-gray {
+    @apply bg-gray-50 text-gray-600 border-gray-200;
+  }
+  .dark .badge-gray {
+    @apply bg-gray-800/50 text-gray-300 border-gray-700;
+  }
+
+  /* Stat color overrides for dark mode */
+  .stat-blue { @apply text-blue-600; }
+  .dark .stat-blue { @apply text-blue-400; }
+  .stat-green { @apply text-green-600; }
+  .dark .stat-green { @apply text-green-400; }
+  .stat-purple { @apply text-purple-600; }
+  .dark .stat-purple { @apply text-purple-400; }
+  .stat-orange { @apply text-orange-600; }
+  .dark .stat-orange { @apply text-orange-400; }
+  .stat-red { @apply text-red-600; }
+  .dark .stat-red { @apply text-red-400; }
 }
 
 @layer components {

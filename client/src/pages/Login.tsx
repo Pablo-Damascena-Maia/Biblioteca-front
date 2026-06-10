@@ -28,16 +28,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md card-premium">
-        <CardHeader className="text-center space-y-2 pb-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/50 p-4">
+      <Card className="w-full max-w-md card-premium page-enter">
+        <CardHeader className="text-center space-y-3 pb-4">
           <div className="flex justify-center">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-md">
               <BookOpen className="w-7 h-7 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Biblioteca Digital</CardTitle>
-          <p className="text-sm text-muted-foreground">Entre com sua conta para continuar</p>
+          <div>
+            <CardTitle className="text-2xl font-bold">Biblioteca Digital</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Entre com sua conta para continuar</p>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -8,10 +8,10 @@ import { reservas as api, Reserva } from '@/services/api';
 import { toast } from 'sonner';
 
 function statusColor(s: string) {
-  if (s === 'Ativa') return 'bg-green-50 text-green-700 border-green-200';
-  if (s === 'Cancelada') return 'bg-red-50 text-red-700 border-red-200';
-  if (s === 'Expirada') return 'bg-orange-50 text-orange-700 border-orange-200';
-  return 'bg-gray-50 text-gray-700 border-gray-200';
+  if (s === 'Ativa') return 'badge-green';
+  if (s === 'Cancelada') return 'badge-red';
+  if (s === 'Expirada') return 'badge-orange';
+  return 'badge-gray';
 }
 
 export default function Reservas() {
@@ -41,11 +41,11 @@ export default function Reservas() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 page-enter">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Reservas</h1>
-            <p className="text-muted-foreground">Gerenciar reservas de livros</p>
+            <h1 className="text-3xl font-bold text-foreground">Reservas</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gerenciar reservas de livros</p>
           </div>
           <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="w-4 h-4 mr-2" /> Nova Reserva
@@ -100,7 +100,7 @@ export default function Reservas() {
                         <td className="py-4 px-4 text-muted-foreground">Livro {r.livro_id}</td>
                         <td className="py-4 px-4 text-center">
                           {r.reserva_posicao_fila != null && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge variant="outline" className="badge-blue">
                               #{r.reserva_posicao_fila}
                             </Badge>
                           )}
