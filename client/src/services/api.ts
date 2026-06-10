@@ -59,7 +59,6 @@ export interface Usuario {
   usuario_id: number;
   usuario_nome: string;
   usuario_email: string;
-  usuario_cpf: string;
   usuario_tipo: 'Leitor' | 'Bibliotecario';
   usuario_status: 'Ativo' | 'Inativo' | 'Bloqueado';
   usuario_data_cadastro: string;

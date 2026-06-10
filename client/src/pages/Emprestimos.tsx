@@ -1,9 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Plus, Calendar, AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -34,12 +31,6 @@ import {
 } from '@/services/api';
 import { toast } from 'sonner';
 
-function statusColor(s: string) {
-  if (s === 'Ativo') return 'badge-blue';
-  if (s === 'Atrasado') return 'badge-red';
-  return 'badge-green';
-}
-
 function fmt(d?: string) {
   if (!d) return '—';
   return new Date(d).toLocaleDateString('pt-BR');
@@ -48,8 +39,9 @@ function fmt(d?: string) {
 export default function Emprestimos() {
   const [data, setData] = useState<Emprestimo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'novo' | 'ativos'>('novo');
 
-  // ─── Estado do modal "Novo Empréstimo" ────────────────────────────────
+  // ─── Modal state ──────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
   const [usuariosList, setUsuariosList] = useState<Usuario[]>([]);
   const [livrosList, setLivrosList] = useState<Livro[]>([]);
@@ -57,13 +49,12 @@ export default function Emprestimos() {
   const [semExemplar, setSemExemplar] = useState(false);
   const [loadingModal, setLoadingModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
   const [selectedUsuario, setSelectedUsuario] = useState('');
   const [selectedLivro, setSelectedLivro] = useState('');
   const [selectedDataDevolucao, setSelectedDataDevolucao] = useState('');
   const [loadingExemplares, setLoadingExemplares] = useState(false);
 
-  // ─── Estado do modal de confirmação de devolução ──────────────────────
+  // ─── Devolução state ──────────────────────────────────────────────
   const [devolverDialog, setDevolverDialog] = useState(false);
   const [devolverTarget, setDevolverTarget] = useState<Emprestimo | null>(null);
   const [devolvendo, setDevolvendo] = useState(false);
@@ -78,7 +69,6 @@ export default function Emprestimos() {
 
   useEffect(carregar, []);
 
-  // ─── Abrir modal e carregar usuários + livros ─────────────────────────
   const abrirModal = async () => {
     setModalOpen(true);
     setLoadingModal(true);
@@ -87,7 +77,6 @@ export default function Emprestimos() {
     setSelectedDataDevolucao('');
     setExemplaresList([]);
     setSemExemplar(false);
-
     try {
       const [u, l] = await Promise.all([apiUsuarios.listar(), apiLivros.listar()]);
       setUsuariosList(Array.isArray(u) ? u.filter((x) => x.usuario_status === 'Ativo') : []);
@@ -99,22 +88,17 @@ export default function Emprestimos() {
     }
   };
 
-  // ─── Ao selecionar um livro, carregar seus exemplares disponíveis ─────
   const handleLivroChange = async (livroId: string) => {
     setSelectedLivro(livroId);
     setExemplaresList([]);
     setSemExemplar(false);
-
     if (!livroId) return;
-
     setLoadingExemplares(true);
     try {
       const ex = await apiExemplares.listarPorLivro(Number(livroId));
       const disponiveis = Array.isArray(ex) ? ex.filter((e) => e.disponibilidade === 'Disponivel') : [];
       setExemplaresList(disponiveis);
-      if (disponiveis.length === 0) {
-        setSemExemplar(true);
-      }
+      if (disponiveis.length === 0) setSemExemplar(true);
     } catch {
       toast.error('Erro ao carregar exemplares');
     } finally {
@@ -122,36 +106,28 @@ export default function Emprestimos() {
     }
   };
 
-  // ─── Criar empréstimo ─────────────────────────────────────────────────
   const handleCriar = async () => {
     if (!selectedUsuario || !selectedLivro || !selectedDataDevolucao) {
       toast.error('Preencha todos os campos');
       return;
     }
-
     if (exemplaresList.length === 0) {
       toast.error('Nenhum exemplar disponível para este livro');
       return;
     }
-
-    // Pega automaticamente o primeiro exemplar disponível
     const exemplarAuto = exemplaresList[0];
-
     setSubmitting(true);
     try {
-      // Calcula diasPrazo a partir da data selecionada
       const hoje = new Date();
       hoje.setHours(0, 0, 0, 0);
       const dataDev = new Date(selectedDataDevolucao + 'T00:00:00');
       const diasPrazo = Math.max(1, Math.round((dataDev.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)));
-
       const novo = await api.criar({
         usuarioId: Number(selectedUsuario),
         livroId: Number(selectedLivro),
         exemplarId: exemplarAuto.id,
         diasPrazo,
       });
-      // Adiciona o novo empréstimo ao estado local
       const usuarioSel = usuariosList.find((u) => u.usuario_id === Number(selectedUsuario));
       const livroSel = livrosList.find((l) => l.id === Number(selectedLivro));
       const emprestimoCriado: Emprestimo = {
@@ -170,7 +146,6 @@ export default function Emprestimos() {
     }
   };
 
-  // ─── Confirmação de devolução ─────────────────────────────────────────
   const pedirDevolucao = (e: Emprestimo) => {
     setDevolverTarget(e);
     setDevolverDialog(true);
@@ -199,100 +174,121 @@ export default function Emprestimos() {
 
   const ativos = data.filter((e) => e.emprestimo_status === 'Ativo');
   const atrasados = data.filter((e) => e.emprestimo_status === 'Atrasado');
-  const multaTotal = atrasados.reduce((acc, e) => acc + (e.emprestimo_multa_valor ?? 0), 0);
-
-  const TabelaEmprestimos = ({ lista }: { lista: Emprestimo[] }) => (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-border">
-            <th className="text-left py-3 px-4 font-semibold text-foreground">Usuário</th>
-            <th className="text-left py-3 px-4 font-semibold text-foreground">Livro</th>
-            <th className="text-left py-3 px-4 font-semibold text-foreground">Empréstimo</th>
-            <th className="text-left py-3 px-4 font-semibold text-foreground">Devolução</th>
-            <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-            <th className="text-right py-3 px-4 font-semibold text-foreground">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lista.length === 0 ? (
-            <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro encontrado.</td></tr>
-          ) : lista.map((e) => (
-            <tr key={e.emprestimo_id} className="border-b border-border hover:bg-secondary/50 transition-colors">
-              <td className="py-4 px-4 text-foreground font-medium">{e.usuario?.usuario_nome ?? `ID ${e.usuario_id}`}</td>
-              <td className="py-4 px-4 text-muted-foreground">{e.livro?.livro_titulo ?? (e.itens?.length ? `Exemplar ${e.itens.map(i => i.exemplar_id).join(', ')}` : '—')}</td>
-              <td className="py-4 px-4 text-muted-foreground">
-                <span className="flex items-center gap-2"><Calendar className="w-4 h-4" />{fmt(e.emprestimo_data_emprestimo)}</span>
-              </td>
-              <td className="py-4 px-4 text-muted-foreground">{fmt(e.emprestimo_data_prevista_devolucao)}</td>
-              <td className="py-4 px-4">
-                <Badge variant="outline" className={statusColor(e.emprestimo_status)}>
-                  {e.emprestimo_status === 'Atrasado' && <AlertTriangle className="w-3 h-3 mr-1" />}
-                  {e.emprestimo_status}
-                </Badge>
-              </td>
-              <td className="py-4 px-4 text-right">
-                {e.emprestimo_status !== 'Devolvido' && (
-                  <Button variant="outline" size="sm" onClick={() => pedirDevolucao(e)}>
-                    <RotateCcw className="w-3 h-3 mr-1" /> Devolver
-                  </Button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 page-enter">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Empréstimos</h1>
-            <p className="text-sm text-muted-foreground mt-1">Gerenciar empréstimos e devoluções</p>
-          </div>
-          <Button
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={abrirModal}
+      <div className="space-y-6 page-enter">
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 pb-4">
+          Gestão de Empréstimos e Devoluções
+        </h1>
+
+        {/* Tabs */}
+        <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => setActiveTab('novo')}
+            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+              activeTab === 'novo'
+                ? 'border-primary text-primary dark:text-rose-400 dark:border-rose-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
           >
-            <Plus className="w-4 h-4 mr-2" /> Novo Empréstimo
-          </Button>
+            Registrar Nova Retirada
+          </button>
+          <button
+            onClick={() => setActiveTab('ativos')}
+            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+              activeTab === 'ativos'
+                ? 'border-primary text-primary dark:text-rose-400 dark:border-rose-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            Processar Devolução ({ativos.length + atrasados.length})
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { label: 'Empréstimos Ativos', value: loading ? '—' : ativos.length, color: '' },
-            { label: 'Atrasados', value: loading ? '—' : atrasados.length, color: 'stat-red' },
-            { label: 'Multas Pendentes', value: loading ? '—' : `R$ ${multaTotal.toFixed(2).replace('.', ',')}`, color: 'stat-orange' },
-          ].map((s) => (
-            <Card key={s.label} className="card-premium">
-              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle></CardHeader>
-              <CardContent><div className={`text-3xl font-bold ${s.color || 'text-foreground'}`}>{s.value}</div></CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Tab: Nova Retirada */}
+        {activeTab === 'novo' && (
+          <div className="glass-card p-6 max-w-2xl">
+            <div className="space-y-6">
+              <div>
+                <label className="sgb-label">Buscar Usuário</label>
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Clique em 'Novo Empréstimo' para buscar..." className="sgb-input" disabled />
+                  <button onClick={abrirModal} className="sgb-btn-primary whitespace-nowrap flex items-center gap-2 shrink-0">
+                    <Plus className="w-4 h-4" />
+                    Novo Empréstimo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-        <Card className="card-premium">
-          <CardHeader><CardTitle>Histórico de Empréstimos</CardTitle></CardHeader>
-          <CardContent>
+        {/* Tab: Devoluções */}
+        {activeTab === 'ativos' && (
+          <div className="glass-card overflow-hidden">
             {loading ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+              </div>
             ) : (
-              <Tabs defaultValue="todos" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="todos">Todos ({data.length})</TabsTrigger>
-                  <TabsTrigger value="ativos">Ativos ({ativos.length})</TabsTrigger>
-                  <TabsTrigger value="atrasados">Atrasados ({atrasados.length})</TabsTrigger>
-                </TabsList>
-                <TabsContent value="todos" className="mt-6"><TabelaEmprestimos lista={data} /></TabsContent>
-                <TabsContent value="ativos" className="mt-6"><TabelaEmprestimos lista={ativos} /></TabsContent>
-                <TabsContent value="atrasados" className="mt-6"><TabelaEmprestimos lista={atrasados} /></TabsContent>
-              </Tabs>
+              <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase">
+                  <tr>
+                    <th className="px-6 py-4">Livro</th>
+                    <th className="px-6 py-4">Leitor</th>
+                    <th className="px-6 py-4">Prazo</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                  {[...ativos, ...atrasados].length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-slate-400">Nenhum empréstimo ativo.</td>
+                    </tr>
+                  ) : (
+                    [...ativos, ...atrasados].map((e) => (
+                      <tr key={e.emprestimo_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-100">
+                          {e.livro?.livro_titulo ?? (e.itens?.length ? `Exemplar ${e.itens.map(i => i.exemplar_id).join(', ')}` : '—')}
+                        </td>
+                        <td className="px-6 py-4 dark:text-slate-300">
+                          {e.usuario?.usuario_nome ?? `ID ${e.usuario_id}`}
+                        </td>
+                        <td className="px-6 py-4 dark:text-slate-300 flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-slate-400" />
+                          {fmt(e.emprestimo_data_prevista_devolucao)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 w-fit ${
+                              e.emprestimo_status === 'Ativo'
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                            }`}
+                          >
+                            {e.emprestimo_status === 'Atrasado' && <AlertTriangle className="w-3 h-3" />}
+                            {e.emprestimo_status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => pedirDevolucao(e)}
+                            className="text-primary hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-bold flex items-center gap-1 text-sm"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Processar
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
 
       {/* ─── Modal: Novo Empréstimo ─────────────────────────────────────── */}
@@ -311,7 +307,6 @@ export default function Emprestimos() {
             </div>
           ) : (
             <div className="space-y-4 py-2">
-              {/* Usuário */}
               <div className="space-y-2">
                 <Label htmlFor="select-usuario">Usuário</Label>
                 <Select value={selectedUsuario} onValueChange={setSelectedUsuario}>
@@ -320,9 +315,7 @@ export default function Emprestimos() {
                   </SelectTrigger>
                   <SelectContent>
                     {usuariosList.length === 0 ? (
-                      <SelectItem value="_empty" disabled>
-                        Nenhum usuário ativo encontrado
-                      </SelectItem>
+                      <SelectItem value="_empty" disabled>Nenhum usuário ativo encontrado</SelectItem>
                     ) : (
                       usuariosList.map((u) => (
                         <SelectItem key={u.usuario_id} value={String(u.usuario_id)}>
@@ -334,7 +327,6 @@ export default function Emprestimos() {
                 </Select>
               </div>
 
-              {/* Livro */}
               <div className="space-y-2">
                 <Label htmlFor="select-livro">Livro</Label>
                 <Select value={selectedLivro} onValueChange={handleLivroChange}>
@@ -343,9 +335,7 @@ export default function Emprestimos() {
                   </SelectTrigger>
                   <SelectContent>
                     {livrosList.length === 0 ? (
-                      <SelectItem value="_empty" disabled>
-                        Nenhum livro ativo encontrado
-                      </SelectItem>
+                      <SelectItem value="_empty" disabled>Nenhum livro ativo encontrado</SelectItem>
                     ) : (
                       livrosList.map((l) => (
                         <SelectItem key={l.id} value={String(l.id)}>
@@ -358,16 +348,15 @@ export default function Emprestimos() {
                 </Select>
               </div>
 
-              {/* Info exemplar automático */}
               {selectedLivro && !loadingExemplares && (
-                <div className="text-sm text-muted-foreground px-1">
+                <div className="text-sm px-1">
                   {semExemplar ? (
-                    <span className="text-red-600 flex items-center gap-1">
+                    <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
                       <AlertTriangle className="w-4 h-4" />
                       Nenhum exemplar disponível para este livro
                     </span>
                   ) : (
-                    <span className="text-green-600">
+                    <span className="text-green-600 dark:text-green-400">
                       ✓ {exemplaresList.length} exemplar(es) disponível(is) — um será selecionado automaticamente
                     </span>
                   )}
@@ -380,7 +369,6 @@ export default function Emprestimos() {
                 </div>
               )}
 
-              {/* Data de Devolução Prevista */}
               <div className="space-y-2">
                 <Label htmlFor="input-data-devolucao">Data de Devolução Prevista</Label>
                 <Input

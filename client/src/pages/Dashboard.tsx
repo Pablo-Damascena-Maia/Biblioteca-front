@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Users, BarChart3, AlertCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { cn } from '@/lib/utils';
 import { emprestimos, reservas, usuarios, livros, checkServicos } from '@/services/api';
 import { toast } from 'sonner';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface KpiData {
   totalLivros: number;
@@ -24,15 +32,14 @@ export default function Dashboard() {
   const [atividades, setAtividades] = useState<AtividadeRecente[]>([]);
   const [statusServicos, setStatusServicos] = useState({ catalogo: false, usuario: false, emprestimo: false, reserva: false });
   const [loading, setLoading] = useState(true);
+  const [chartData, setChartData] = useState<{ name: string; emprestimos: number }[]>([]);
 
   useEffect(() => {
     async function carregarDados() {
       try {
-        // 1. Healthcheck dedicado — não depende de dados reais, apenas testa se o serviço responde
         const status = await checkServicos();
         setStatusServicos(status);
 
-        // 2. Carrega KPIs em paralelo, sem travar se um serviço falhar
         const [livrosData, usuariosData, emprestimosData, pendentes] = await Promise.allSettled([
           livros.listar(),
           usuarios.listar(),
@@ -51,8 +58,27 @@ export default function Dashboard() {
           reservasPendentes: pendentes.status === 'fulfilled' ? pendentes.value : 0,
         });
 
-        // 3. Feed de atividades recentes
+        // Build chart data from actual loans
         if (emprestimosData.status === 'fulfilled') {
+          const monthCounts: Record<string, number> = {};
+          const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+          emprestimosData.value.forEach((e) => {
+            if (e.emprestimo_data_emprestimo) {
+              const d = new Date(e.emprestimo_data_emprestimo);
+              const key = meses[d.getMonth()];
+              monthCounts[key] = (monthCounts[key] || 0) + 1;
+            }
+          });
+          const cd = meses
+            .filter((m) => monthCounts[m])
+            .map((m) => ({ name: m, emprestimos: monthCounts[m] }));
+          setChartData(cd.length > 0 ? cd : [
+            { name: 'Jan', emprestimos: 0 },
+            { name: 'Fev', emprestimos: 0 },
+            { name: 'Mar', emprestimos: 0 },
+          ]);
+
+          // Recent activity
           const recentes = emprestimosData.value.slice(0, 5).map((e, i) => ({
             id: e.emprestimo_id,
             descricao: `Empréstimo #${e.emprestimo_id} — ${e.usuario?.usuario_nome || `Usuário ${e.usuario_id}`}`,
@@ -69,89 +95,128 @@ export default function Dashboard() {
     carregarDados();
   }, []);
 
-  const stats = [
-    { title: 'Total de Livros',      value: kpis.totalLivros,       icon: <BookOpen  className="w-5 h-5" />, color: 'stat-blue',   bg: 'bg-blue-100 dark:bg-blue-900/30' },
-    { title: 'Usuários Ativos',      value: kpis.usuariosAtivos,    icon: <Users     className="w-5 h-5" />, color: 'stat-green',  bg: 'bg-green-100 dark:bg-green-900/30' },
-    { title: 'Empréstimos Ativos',   value: kpis.emprestimosAtivos, icon: <BarChart3 className="w-5 h-5" />, color: 'stat-purple', bg: 'bg-purple-100 dark:bg-purple-900/30' },
-    { title: 'Reservas Pendentes',   value: kpis.reservasPendentes, icon: <AlertCircle className="w-5 h-5" />, color: 'stat-orange', bg: 'bg-orange-100 dark:bg-orange-900/30' },
-  ];
-
   const servicos = [
-    { nome: 'Catálogo (9502)',   online: statusServicos.catalogo   },
-    { nome: 'Usuário (9501)',    online: statusServicos.usuario    },
+    { nome: 'Catálogo (9502)', online: statusServicos.catalogo },
+    { nome: 'Usuário (9501)', online: statusServicos.usuario },
     { nome: 'Empréstimo (9500)', online: statusServicos.emprestimo },
-    { nome: 'Reserva (9503)',    online: statusServicos.reserva    },
+    { nome: 'Reserva (9503)', online: statusServicos.reserva },
   ];
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 page-enter">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Bem-vindo ao sistema de gerenciamento da biblioteca</p>
-        </div>
-
+      <div className="space-y-6 page-enter">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {stats.map((stat) => (
-                <Card key={stat.title} className="card-premium">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                    <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', stat.bg, stat.color)}>{stat.icon}</div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stat.value.toLocaleString('pt-BR')}</div>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="glass-card p-6 border-l-4 border-slate-700 dark:border-slate-500">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total de Livros</p>
+                <p className="text-3xl font-bold text-slate-800 dark:text-slate-100 mt-2">
+                  {kpis.totalLivros.toLocaleString('pt-BR')}
+                </p>
+              </div>
+
+              <div className="glass-card p-6 border-l-4 border-primary dark:border-rose-500">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Empréstimos Ativos</p>
+                <p className="text-3xl font-bold text-primary dark:text-rose-400 mt-2">
+                  {kpis.emprestimosAtivos.toLocaleString('pt-BR')}
+                </p>
+              </div>
+
+              <div className="glass-card p-6 border-l-4 border-emerald-600 dark:border-emerald-400">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Usuários Ativos</p>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
+                  {kpis.usuariosAtivos.toLocaleString('pt-BR')}
+                </p>
+              </div>
+
+              <div className="glass-card p-6 border-l-4 border-secondary dark:border-amber-400">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reservas Pendentes</p>
+                <p className="text-3xl font-bold text-secondary dark:text-amber-400 mt-2">
+                  {kpis.reservasPendentes.toLocaleString('pt-BR')}
+                </p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 card-premium">
-                <CardHeader>
-                  <CardTitle>Atividade Recente</CardTitle>
-                </CardHeader>
-                <CardContent>
+            {/* Charts + Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Chart */}
+              <div className="glass-card p-6">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-6">Empréstimos por Mês</h3>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="name" stroke="#64748b" />
+                      <YAxis stroke="#64748b" />
+                      <Tooltip
+                        contentStyle={{
+                          borderRadius: '8px',
+                          border: 'none',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        }}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="emprestimos"
+                        name="Empréstimos"
+                        stroke="#881337"
+                        strokeWidth={3}
+                        activeDot={{ r: 8 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Activity + Services */}
+              <div className="space-y-6">
+                {/* Recent activity */}
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Atividade Recente</h3>
                   {atividades.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhuma atividade recente.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Nenhuma atividade recente.</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {atividades.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                        <div key={a.id} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
                           <div>
-                            <p className="font-medium text-foreground">{a.descricao}</p>
-                            <p className="text-sm text-muted-foreground">Empréstimo registrado</p>
+                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{a.descricao}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Empréstimo registrado</p>
                           </div>
-                          <span className="text-xs text-muted-foreground">{a.hora}</span>
+                          <span className="text-xs text-slate-400">{a.hora}</span>
                         </div>
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="card-premium">
-                <CardHeader>
-                  <CardTitle>Status dos Microsserviços</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {servicos.map((s) => (
-                    <div key={s.nome} className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">{s.nome}</span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        s.online ? 'badge-green' : 'badge-red'
-                      }`}>
-                        {s.online ? 'Online' : 'Offline'}
-                      </span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+                {/* Microservices status */}
+                <div className="glass-card p-6">
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Status dos Microsserviços</h3>
+                  <div className="space-y-3">
+                    {servicos.map((s) => (
+                      <div key={s.nome} className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600 dark:text-slate-400">{s.nome}</span>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                            s.online
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                              : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                          }`}
+                        >
+                          {s.online ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}

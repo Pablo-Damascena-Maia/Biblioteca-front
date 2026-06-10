@@ -40,6 +40,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Removed hardcoded SGB Colors */
 }
 
 :root {
@@ -118,9 +119,9 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Lato', system-ui, -apple-system, sans-serif;
-    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -133,37 +134,10 @@
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-weight: 700;
-  }
-
-  /* Improved table styles for elegance */
-  table {
-    @apply w-full text-sm text-left border-collapse;
-  }
-  th {
-    @apply font-semibold text-foreground border-b-2 border-border/60 py-3 px-4 uppercase text-xs tracking-wider;
-  }
-  td {
-    @apply py-4 px-4 border-b border-border/40 text-muted-foreground transition-colors;
-  }
-  tr:hover td {
-    @apply text-foreground bg-secondary/30;
-  }
-
-  /* Improved Card layout */
-  .card-premium {
-    @apply bg-card text-card-foreground rounded-xl border border-border/50 shadow-sm transition-all duration-300;
-  }
-  .card-premium:hover {
-    @apply shadow-md border-border -translate-y-0.5;
-  }
-
-  /* Alternating table row background */
-  tbody tr:nth-child(even) td {
-    @apply bg-muted/20;
   }
 
   /* Page entry animation */
@@ -177,8 +151,28 @@
       transform: translateY(0);
     }
   }
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
   .page-enter {
     animation: fadeInUp 0.4s ease-out;
+  }
+  .animate-slideIn {
+    animation: slideIn 0.3s ease-out;
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
   }
 
   /* Dark-mode-safe badge colors */
@@ -218,6 +212,18 @@
   .dark .badge-gray {
     @apply bg-gray-800/50 text-gray-300 border-gray-700;
   }
+  .badge-amber {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+  .dark .badge-amber {
+    @apply bg-amber-950/50 text-amber-300 border-amber-800;
+  }
+  .badge-emerald {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .dark .badge-emerald {
+    @apply bg-emerald-950/50 text-emerald-300 border-emerald-800;
+  }
 
   /* Stat color overrides for dark mode */
   .stat-blue { @apply text-blue-600; }
@@ -233,6 +239,73 @@
 }
 
 @layer components {
+  /* ─── SGB Glass Card ──────────────────────────────────────────────── */
+  .glass-card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm transition-all duration-200;
+  }
+  .glass-card:hover {
+    @apply shadow-md;
+  }
+  .dark .glass-card {
+    background: rgba(26, 26, 46, 1);
+    border-color: rgba(51, 65, 85, 0.5);
+  }
+
+  /* ─── SGB Buttons ─────────────────────────────────────────────────── */
+  .sgb-btn-primary {
+    @apply bg-primary text-primary-foreground font-medium py-2 px-4 rounded-lg transition-all duration-200;
+  }
+  .sgb-btn-primary:hover {
+    @apply opacity-90;
+  }
+  .sgb-btn-primary:focus {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+  .dark .sgb-btn-primary:focus {
+    @apply ring-offset-background;
+  }
+
+  .sgb-btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-300 font-medium py-2 px-4 rounded-lg transition-all duration-200;
+  }
+  .sgb-btn-secondary:hover {
+    @apply bg-slate-100;
+  }
+  .dark .sgb-btn-secondary {
+    @apply bg-slate-800 text-slate-200 border-slate-600;
+  }
+  .dark .sgb-btn-secondary:hover {
+    @apply bg-slate-700;
+  }
+
+  /* ─── SGB Input Field ─────────────────────────────────────────────── */
+  .sgb-input {
+    @apply w-full bg-background border border-input rounded-lg px-4 py-2 text-foreground transition-all duration-200;
+  }
+  .sgb-input:focus {
+    @apply outline-none ring-2 ring-ring border-transparent;
+  }
+  .dark .sgb-input {
+    @apply bg-slate-800 border-slate-600 text-slate-200;
+  }
+
+  /* ─── SGB Form Label ──────────────────────────────────────────────── */
+  .sgb-label {
+    @apply block text-sm font-medium text-slate-700 mb-1;
+  }
+  .dark .sgb-label {
+    @apply text-slate-300;
+  }
+
+  /* ─── Premium Card (existing) ──────────────────────────────────────── */
+  .card-premium {
+    @apply bg-card text-card-foreground rounded-xl border border-border/50 shadow-sm transition-all duration-300;
+  }
+  .card-premium:hover {
+    @apply shadow-md border-border -translate-y-0.5;
+  }
+
+  /* ─── Container ────────────────────────────────────────────────────── */
   .container {
     width: 100%;
     margin-left: auto;

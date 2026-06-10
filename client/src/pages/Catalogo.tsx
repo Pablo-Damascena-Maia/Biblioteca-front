@@ -1,8 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { livros, Livro } from '@/services/api';
@@ -28,7 +24,6 @@ export default function Catalogo() {
   }, []);
 
   const handleAlterarStatus = async (livro: Livro) => {
-    // Backend espera status numérico: 1 = Ativo, 0 = Inativo
     const novoStatus = livro.status === 1 ? 0 : 1;
     try {
       await livros.alterarStatus(livro.id, novoStatus);
@@ -46,98 +41,106 @@ export default function Catalogo() {
   const filtered = data.filter((l) => {
     const termoBusca = (search || '').toLowerCase();
     const tituloLivro = (l.titulo || '').toLowerCase();
-
-    // Como autores é um array (N:N), pegamos o nome do primeiro autor para a pesquisa
     const nomeAutor = l.autores && l.autores.length > 0 && l.autores[0].autor
       ? (l.autores[0].autor.nome || '').toLowerCase()
       : '';
-
     return tituloLivro.includes(termoBusca) || nomeAutor.includes(termoBusca);
   });
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 page-enter">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Catálogo de Livros</h1>
-            <p className="text-sm text-muted-foreground mt-1">Gerenciar livros e exemplares da biblioteca</p>
+      <div className="space-y-6 page-enter">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Catálogo de Livros</h1>
+          <div className="flex gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar livros ou autores..."
+                className="sgb-input w-64 md:w-80 pl-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <button onClick={() => setDialogAberto(true)} className="sgb-btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Livro
+            </button>
           </div>
-          <Button
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={() => setDialogAberto(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" /> Novo Livro
-          </Button>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-          <Input placeholder="Buscar por título ou autor..." className="pl-10" value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
+        {/* Table */}
+        <div className="glass-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+              <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase">
+                <tr>
+                  <th className="px-6 py-4 font-semibold">Título & Autor</th>
+                  <th className="px-6 py-4 font-semibold">Gênero</th>
+                  <th className="px-6 py-4 font-semibold text-center">Exemplares</th>
+                  <th className="px-6 py-4 font-semibold">Status</th>
+                  <th className="px-6 py-4 font-semibold text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto" />
+                    </td>
+                  </tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-slate-400">Nenhum livro encontrado.</td>
+                  </tr>
+                ) : (
+                  filtered.map((livro) => {
+                    const autorNome = livro.autores && livro.autores.length > 0
+                      ? livro.autores.map((a) => a.autor.nome).join(', ')
+                      : '—';
+                    const generoNome = livro.generos && livro.generos.length > 0
+                      ? livro.generos.map((g) => g.genero.nome).join(', ')
+                      : '—';
 
-        <Card className="card-premium">
-          <CardHeader>
-            <CardTitle>Livros Cadastrados {!loading && <span className="text-sm font-normal text-muted-foreground ml-2">({filtered.length})</span>}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-            ) : filtered.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Nenhum livro encontrado.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Título</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Autor</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Gênero</th>
-                      <th className="text-center py-3 px-4 font-semibold text-foreground">Exemplares</th>
-                      <th className="text-left py-3 px-4 font-semibold text-foreground">Status</th>
-                      <th className="text-right py-3 px-4 font-semibold text-foreground">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((livro) => (
-                      <tr key={livro.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
-                        <td className="py-4 px-4 text-foreground font-medium">{livro.titulo}</td>
-                        <td className="py-4 px-4 text-muted-foreground">
-                          {livro.autores && livro.autores.length > 0
-                            ? livro.autores.map((a) => a.autor.nome).join(', ')
-                            : '—'}
+                    return (
+                      <tr key={livro.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-slate-800 dark:text-slate-100 text-base">{livro.titulo}</p>
+                          <p className="text-slate-500 dark:text-slate-400">{autorNome}</p>
                         </td>
-                        <td className="py-4 px-4 text-muted-foreground">
-                          {livro.generos && livro.generos.length > 0
-                            ? livro.generos.map((g) => g.genero.nome).join(', ')
-                            : '—'}
-                        </td>
-                        <td className="py-4 px-4 text-center text-foreground">
+                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{generoNome}</td>
+                        <td className="px-6 py-4 text-center text-slate-700 dark:text-slate-300 font-medium">
                           {livro.exemplares?.length ?? '—'}
                         </td>
-
-                        <td className="py-4 px-4">
-                          <Badge variant="outline" className={livro.status === 1 ? 'badge-blue' : 'badge-gray'}>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                              livro.status === 1
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                            }`}
+                          >
                             {livro.status === 1 ? 'Ativo' : 'Inativo'}
-                          </Badge>
+                          </span>
                         </td>
-                        <td className="py-4 px-4 text-right">
+                        <td className="px-6 py-4 text-right">
                           <button
-                            className="text-xs border border-border rounded px-3 py-1.5 hover:bg-secondary transition-colors text-muted-foreground"
                             onClick={() => handleAlterarStatus(livro)}
-                            title="Alternar status"
+                            className="text-primary hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-medium text-sm transition-colors"
                           >
                             {livro.status === 1 ? 'Desativar' : 'Ativar'}
                           </button>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Modal de Novo Livro */}

@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Search, Plus, Edit2, Trash2, Mail, Loader2, UserCheck, UserX, Shield, BookOpen } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { usuarios as api, Usuario } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +17,6 @@ import { toast } from 'sonner';
 const EMPTY_FORM = {
   usuario_nome: '',
   usuario_email: '',
-  usuario_cpf: '',
   usuario_senha: '',
   usuario_tipo: 'Leitor' as 'Leitor' | 'Bibliotecario',
   usuario_status: 'Ativo' as 'Ativo' | 'Inativo' | 'Bloqueado',
@@ -53,7 +50,6 @@ export default function Usuarios() {
     setForm({
       usuario_nome: u.usuario_nome,
       usuario_email: u.usuario_email,
-      usuario_cpf: u.usuario_cpf,
       usuario_senha: '',
       usuario_tipo: u.usuario_tipo,
       usuario_status: u.usuario_status,
@@ -72,7 +68,6 @@ export default function Usuarios() {
         const payload: Partial<Usuario> = {
           usuario_nome: form.usuario_nome,
           usuario_email: form.usuario_email,
-          usuario_cpf: form.usuario_cpf,
           usuario_tipo: form.usuario_tipo,
           usuario_status: form.usuario_status,
         };
@@ -129,184 +124,132 @@ export default function Usuarios() {
   const filtered = data.filter(
     (u) =>
       u.usuario_nome.toLowerCase().includes(search.toLowerCase()) ||
-      u.usuario_email.toLowerCase().includes(search.toLowerCase()) ||
-      u.usuario_cpf.includes(search)
+      u.usuario_email.toLowerCase().includes(search.toLowerCase())
   );
-
-  const ativos = data.filter((u) => u.usuario_status === 'Ativo').length;
-  const inativos = data.filter((u) => u.usuario_status !== 'Ativo').length;
-  const bibliotecarios = data.filter((u) => u.usuario_tipo === 'Bibliotecario').length;
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 page-enter">
+      <div className="space-y-6 page-enter">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Usuários</h1>
-            <p className="text-sm text-muted-foreground mt-1">Gestão de usuários do sistema</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Gestão de Usuários</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Administração de perfis e privilégios.</p>
           </div>
           {isAdmin && (
-            <Button
-              onClick={openCriar}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
-            >
-              <Plus className="w-4 h-4" /> Novo Usuário
-            </Button>
+            <button onClick={openCriar} className="sgb-btn-primary flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Usuário
+            </button>
           )}
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total', value: data.length, icon: <Mail className="w-5 h-5" />, color: 'stat-blue' },
-            { label: 'Ativos', value: ativos, icon: <UserCheck className="w-5 h-5" />, color: 'stat-green' },
-            { label: 'Inativos', value: inativos, icon: <UserX className="w-5 h-5" />, color: 'stat-orange' },
-            { label: 'Bibliotecários', value: bibliotecarios, icon: <Shield className="w-5 h-5" />, color: 'stat-purple' },
-          ].map((s) => (
-            <Card key={s.label} className="card-premium">
-              <CardContent className="pt-5 flex items-center gap-4">
-                <div className={`${s.color} opacity-80`}>{s.icon}</div>
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">{s.label}</p>
-                  <p className={`text-2xl font-bold ${s.color}`}>{loading ? '—' : s.value}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
         </div>
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, email ou CPF..."
-            className="pl-10"
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar por nome ou email..."
+            className="sgb-input pl-10"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         {/* Table */}
-        <Card className="card-premium">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Lista de Usuários</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-16">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center py-16 gap-3 text-muted-foreground">
-                <BookOpen className="w-10 h-10 opacity-30" />
-                <p>Nenhum usuário encontrado.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/40">
-                      {['Nome', 'Email', 'Tipo', 'Status', 'Cadastro'].map((h) => (
-                        <th
-                          key={h}
-                          className="text-left py-3 px-4 font-semibold text-muted-foreground uppercase tracking-wide text-xs"
-                        >
-                          {h}
-                        </th>
-                      ))}
-                      {isAdmin && (
-                        <th className="text-right py-3 px-4 font-semibold text-muted-foreground uppercase tracking-wide text-xs">
-                          Ações
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((u) => (
-                      <tr
-                        key={u.usuario_id}
-                        className="border-b border-border hover:bg-secondary/40 transition-colors"
+        <div className="glass-card overflow-hidden">
+          <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
+            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase">
+              <tr>
+                <th className="px-6 py-4">Usuário</th>
+                <th className="px-6 py-4">Nível de Acesso</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Cadastro</th>
+                {isAdmin && <th className="px-6 py-4 text-right">Ações de Gestão</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-12">
+                    <Loader2 className="w-6 h-6 animate-spin text-slate-400 mx-auto" />
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-slate-400">Nenhum usuário encontrado.</td>
+                </tr>
+              ) : (
+                filtered.map((u) => (
+                  <tr key={u.usuario_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-800 dark:text-slate-100 text-base">{u.usuario_nome}</p>
+                      <p className="text-slate-500 dark:text-slate-400">{u.usuario_email}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          u.usuario_tipo === 'Bibliotecario'
+                            ? 'bg-primary text-white'
+                            : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                        }`}
                       >
-                        <td className="py-4 px-4 font-medium text-foreground">{u.usuario_nome}</td>
-                        <td className="py-4 px-4 text-muted-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 shrink-0" />
-                            {u.usuario_email}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <Badge
-                            variant="outline"
-                            className={
-                              u.usuario_tipo === 'Bibliotecario'
-                                ? 'badge-purple gap-1'
-                                : 'badge-blue gap-1'
-                            }
+                        {u.usuario_tipo === 'Bibliotecario' ? 'BIBLIOTECÁRIO' : 'LEITOR'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          u.usuario_status === 'Ativo'
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : u.usuario_status === 'Bloqueado'
+                              ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                              : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                        }`}
+                      >
+                        {u.usuario_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs">
+                      {u.usuario_data_cadastro
+                        ? new Date(u.usuario_data_cadastro).toLocaleDateString('pt-BR')
+                        : '—'}
+                    </td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditar(u)}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                            title="Editar"
                           >
-                            {u.usuario_tipo === 'Bibliotecario' ? (
-                              <><Shield className="w-3 h-3" /> Bibliotecário</>
-                            ) : (
-                              <><BookOpen className="w-3 h-3" /> Leitor</>
-                            )}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4">
-                          <Badge
-                            variant="outline"
-                            className={
-                              u.usuario_status === 'Ativo'
-                                ? 'badge-green'
-                                : u.usuario_status === 'Bloqueado'
-                                  ? 'badge-red'
-                                  : 'badge-orange'
-                            }
+                            <Edit2 className="w-4 h-4 text-slate-500" />
+                          </button>
+                          <button
+                            onClick={() => handleRemover(u)}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                            title="Remover"
                           >
-                            {u.usuario_status}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4 text-muted-foreground text-xs">
-                          {u.usuario_data_cadastro
-                            ? new Date(u.usuario_data_cadastro).toLocaleDateString('pt-BR')
-                            : '—'}
-                        </td>
-                        {isAdmin && (
-                          <td className="py-4 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                className="p-1.5 hover:bg-secondary rounded-md transition-colors"
-                                title="Editar"
-                                onClick={() => openEditar(u)}
-                              >
-                                <Edit2 className="w-4 h-4 text-muted-foreground" />
-                              </button>
-                              <button
-                                className="p-1.5 hover:bg-secondary rounded-md transition-colors"
-                                title="Remover"
-                                onClick={() => handleRemover(u)}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </button>
-                              <button
-                                className="text-xs border border-border rounded px-2.5 py-1.5 hover:bg-secondary transition-colors text-muted-foreground whitespace-nowrap"
-                                onClick={() => handleAlterarStatus(u)}
-                              >
-                                {u.usuario_status === 'Ativo' ? 'Desativar' : 'Ativar'}
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                            <Trash2 className="w-4 h-4 text-rose-500" />
+                          </button>
+                          <button
+                            onClick={() => handleAlterarStatus(u)}
+                            className="sgb-btn-secondary text-xs py-1.5 px-2.5 whitespace-nowrap"
+                          >
+                            {u.usuario_status === 'Ativo' ? 'Desativar' : 'Ativar'}
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Modal Criar / Editar — apenas para Bibliotecários */}
+      {/* Modal Criar / Editar */}
       {isAdmin && (
         <Dialog open={modalOpen} onOpenChange={setModalOpen}>
           <DialogContent className="sm:max-w-md">
@@ -316,7 +259,7 @@ export default function Usuarios() {
 
             <div className="space-y-4 py-2">
               <div className="space-y-1">
-                <label className="text-sm font-medium">Nome completo</label>
+                <label className="sgb-label">Nome completo</label>
                 <Input
                   placeholder="Nome do usuário"
                   value={form.usuario_nome}
@@ -324,7 +267,7 @@ export default function Usuarios() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">Email</label>
+                <label className="sgb-label">Email</label>
                 <Input
                   type="email"
                   placeholder="email@exemplo.com"
@@ -332,17 +275,9 @@ export default function Usuarios() {
                   onChange={(e) => setForm((f) => ({ ...f, usuario_email: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium">CPF</label>
-                <Input
-                  placeholder="000.000.000-00"
-                  value={form.usuario_cpf}
-                  onChange={(e) => setForm((f) => ({ ...f, usuario_cpf: e.target.value }))}
-                />
-              </div>
               {!editTarget && (
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Senha</label>
+                  <label className="sgb-label">Senha</label>
                   <Input
                     type="password"
                     placeholder="••••••••"
@@ -353,9 +288,9 @@ export default function Usuarios() {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Tipo</label>
+                  <label className="sgb-label">Tipo</label>
                   <select
-                    className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
+                    className="sgb-input"
                     value={form.usuario_tipo}
                     onChange={(e) => setForm((f) => ({ ...f, usuario_tipo: e.target.value as any }))}
                   >
@@ -364,13 +299,11 @@ export default function Usuarios() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Status</label>
+                  <label className="sgb-label">Status</label>
                   <select
-                    className="w-full border border-input bg-background rounded-md px-3 py-2 text-sm"
+                    className="sgb-input"
                     value={form.usuario_status}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, usuario_status: e.target.value as any }))
-                    }
+                    onChange={(e) => setForm((f) => ({ ...f, usuario_status: e.target.value as any }))}
                   >
                     <option value="Ativo">Ativo</option>
                     <option value="Inativo">Inativo</option>

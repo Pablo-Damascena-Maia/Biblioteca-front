@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { BookOpen, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,55 +25,62 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/50 p-4">
-      <Card className="w-full max-w-md card-premium page-enter">
-        <CardHeader className="text-center space-y-3 pb-4">
-          <div className="flex justify-center">
-            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-md">
-              <BookOpen className="w-7 h-7 text-primary-foreground" />
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f0f1a] p-4 transition-colors duration-300">
+      <div className="w-full max-w-md bg-white dark:bg-[#1a1a2e] rounded-2xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-700 page-enter">
+        {/* Header theme */}
+        <div className="bg-primary p-8 text-center">
+          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+            <BookOpen className="w-8 h-8 text-white" />
           </div>
-          <div>
-            <CardTitle className="text-2xl font-bold">Biblioteca Digital</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Entre com sua conta para continuar</p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">Email</label>
-              <Input
+          <h1 className="text-3xl font-bold text-white mb-2">Biblioteca</h1>
+          <p className="text-primary-foreground/80 text-sm">Sistema de Gerenciamento</p>
+        </div>
+
+        {/* Form */}
+        <div className="p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="sgb-label">Email</label>
+              <input
                 type="email"
-                placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoFocus
+                placeholder="seu@email.com"
+                className="sgb-input"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">Senha</label>
-              <Input
+
+            <div>
+              <label className="sgb-label">Senha</label>
+              <input
                 type="password"
-                placeholder="••••••••"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 required
+                placeholder="••••••••"
+                className="sgb-input"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="sgb-btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Entrando...
                 </>
               ) : (
-                'Entrar'
+                'Entrar no Sistema'
               )}
-            </Button>
+            </button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
