@@ -139,8 +139,9 @@ export default function Emprestimos() {
       setData((prev) => [emprestimoCriado, ...prev]);
       setModalOpen(false);
       toast.success('Empréstimo criado com sucesso!');
-    } catch {
-      toast.error('Erro ao criar empréstimo');
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Erro ao criar empréstimo';
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
