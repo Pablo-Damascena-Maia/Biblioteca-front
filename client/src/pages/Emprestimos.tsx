@@ -239,13 +239,14 @@ export default function Emprestimos() {
                     <th className="px-6 py-4">Leitor</th>
                     <th className="px-6 py-4">Prazo</th>
                     <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Multa</th>
                     <th className="px-6 py-4">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {[...ativos, ...atrasados].length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-400">Nenhum empréstimo ativo.</td>
+                      <td colSpan={6} className="text-center py-8 text-slate-400">Nenhum empréstimo ativo.</td>
                     </tr>
                   ) : (
                     [...ativos, ...atrasados].map((e) => (
@@ -271,6 +272,18 @@ export default function Emprestimos() {
                             {e.emprestimo_status === 'Atrasado' && <AlertTriangle className="w-3 h-3" />}
                             {e.emprestimo_status}
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {e.emprestimo_status === 'Atrasado' && e.emprestimo_multa_valor != null ? (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-900 rounded-lg shadow-sm">
+                              <span className="text-rose-500 dark:text-rose-400 font-medium text-[10px] uppercase tracking-wider">Multa</span>
+                              <span className="font-bold text-rose-700 dark:text-rose-300">
+                                R$ {Number(e.emprestimo_multa_valor).toFixed(2).replace('.', ',')}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           <button
