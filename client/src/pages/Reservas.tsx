@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Loader2 } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { reservas as api, Reserva } from '@/services/api';
 import { toast } from 'sonner';
 
@@ -13,6 +14,7 @@ function statusBadge(s: string) {
 }
 
 export default function Reservas() {
+  const { usuario, isAdmin } = useAuth();
   const [data, setData] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,14 +36,23 @@ export default function Reservas() {
     }
   };
 
+  // Filtragem Mágica do BabyShark:
+  const reservasVisiveis = isAdmin 
+    ? data 
+    : data.filter((r) => r.usuario_id === usuario?.usuario_id);
+
   return (
     <DashboardLayout>
       <div className="space-y-6 page-enter">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Fila de Espera & Reservas</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gerenciar reservas de livros</p>
+            <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+              {isAdmin ? 'Fila de Espera & Reservas' : 'Minhas Reservas'}
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {isAdmin ? 'Gerenciar reservas de livros' : 'Acompanhe seus livros reservados'}
+            </p>
           </div>
           <button className="sgb-btn-primary flex items-center gap-2">
             <Plus className="w-4 h-4" />
@@ -54,13 +65,13 @@ export default function Reservas() {
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
           </div>
-        ) : data.length === 0 ? (
+        ) : reservasVisiveis.length === 0 ? (
           <div className="glass-card p-8 text-center">
             <p className="text-slate-500 dark:text-slate-400">Nenhuma reserva encontrada.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.map((r) => (
+            {reservasVisiveis.map((r) => (
               <div key={r.reserva_id} className="glass-card relative overflow-hidden">
                 {/* Position badge */}
                 {r.reserva_posicao_fila != null && (
@@ -82,9 +93,12 @@ export default function Reservas() {
                     Livro #{r.livro_id}
                   </h3>
                   <div className="space-y-1.5">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      <span className="font-semibold">Usuário:</span> #{r.usuario_id}
-                    </p>
+                    {/* Oculta a visualização do ID do Usuário se não for Admin (desnecessário para o Leitor) */}
+                    {isAdmin && (
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        <span className="font-semibold">Usuário:</span> #{r.usuario_id}
+                      </p>
+                    )}
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       <span className="font-semibold">Solicitado em:</span>{' '}
                       {r.reserva_data_reserva ? new Date(r.reserva_data_reserva).toLocaleDateString('pt-BR') : '—'}

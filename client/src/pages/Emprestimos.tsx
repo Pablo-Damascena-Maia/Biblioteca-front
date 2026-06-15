@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Plus, Calendar, AlertTriangle, Loader2, RotateCcw } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   emprestimos as api,
   usuarios as apiUsuarios,
@@ -37,9 +38,11 @@ function fmt(d?: string) {
 }
 
 export default function Emprestimos() {
+  const { usuario, isAdmin } = useAuth();
   const [data, setData] = useState<Emprestimo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'novo' | 'ativos'>('novo');
+  // O Leitor já inicia na aba de ativos, pois não pode criar empréstimos novos livremente
+  const [activeTab, setActiveTab] = useState<'novo' | 'ativos'>(isAdmin ? 'novo' : 'ativos');
 
   // ─── Modal state ──────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
@@ -58,6 +61,10 @@ export default function Emprestimos() {
   const [devolverDialog, setDevolverDialog] = useState(false);
   const [devolverTarget, setDevolverTarget] = useState<Emprestimo | null>(null);
   const [devolvendo, setDevolvendo] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin) setActiveTab('ativos');
+  }, [isAdmin]);
 
   const carregar = () => {
     setLoading(true);
@@ -80,7 +87,7 @@ export default function Emprestimos() {
     try {
       const [u, l] = await Promise.all([apiUsuarios.listar(), apiLivros.listar()]);
       setUsuariosList(Array.isArray(u) ? u.filter((x) => x.usuario_status === 'Ativo') : []);
-      setLivrosList(Array.isArray(l) ? l.filter((x) => x.status == 1) : []);
+      setLivrosList(Array.isArray(l) ? l.filter((x) => x.status === 1) : []);
     } catch {
       toast.error('Erro ao carregar dados para o formulário');
     } finally {
@@ -96,11 +103,7 @@ export default function Emprestimos() {
     setLoadingExemplares(true);
     try {
       const ex = await apiExemplares.listarPorLivro(Number(livroId));
-      const disponiveis = Array.isArray(ex) ? ex.filter((e) => {
-        const disp = (e.disponibilidade || (e as any).statusDisponibilidade || '').toString().toLowerCase();
-        const matchesLivro = Number(e.livroId || (e as any).livro_id) === Number(livroId);
-        return disp === 'disponivel' && matchesLivro;
-      }) : [];
+      const disponiveis = Array.isArray(ex) ? ex.filter((e) => e.disponibilidade === 'Disponivel') : [];
       setExemplaresList(disponiveis);
       if (disponiveis.length === 0) setSemExemplar(true);
     } catch {
@@ -144,11 +147,7 @@ export default function Emprestimos() {
       setModalOpen(false);
       toast.success('Empréstimo criado com sucesso!');
     } catch (err: any) {
-      const errData = err?.response?.data;
-      const msg =
-        (typeof errData?.error === 'string' ? errData.error : errData?.error?.message) ||
-        errData?.message ||
-        'Erro ao criar empréstimo';
+      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Erro ao criar empréstimo';
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -174,135 +173,95 @@ export default function Emprestimos() {
       );
       toast.success('Devolução registrada!');
       setDevolverDialog(false);
-    } catch (err: any) {
-      const errData = err?.response?.data;
-      const msg =
-        (typeof errData?.error === 'string' ? errData.error : errData?.error?.message) ||
-        errData?.message ||
-        'Erro ao registrar devolução';
-      toast.error(msg);
+    } catch {
+      toast.error('Erro ao registrar devolução');
     } finally {
       setDevolvendo(false);
     }
   };
 
-  const ativos = data.filter((e) => e.emprestimo_status === 'Ativo');
-  const atrasados = data.filter((e) => e.emprestimo_status === 'Atrasado');
+  // Filtragem Mágica do BabyShark: Se não for admin, vê apenas os PRÓPRIOS empréstimos
+  const emprestimosVisiveis = isAdmin 
+    ? data 
+    : data.filter((e) => e.usuario_id === usuario?.usuario_id);
+
+  const ativos = emprestimosVisiveis.filter((e) => e.emprestimo_status === 'Ativo');
+  const atrasados = emprestimosVisiveis.filter((e) => e.emprestimo_status === 'Atrasado');
 
   return (
     <DashboardLayout>
       <div className="space-y-6 page-enter">
-        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
-          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
-            Gestão de Empréstimos e Devoluções
-          </h1>
-        </div>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 border-b border-slate-200 dark:border-slate-700 pb-4">
+          {isAdmin ? 'Gestão de Empréstimos e Devoluções' : 'Meus Empréstimos'}
+        </h1>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in slide-in-from-bottom-2 duration-500">
-          <div className="glass-card p-5 flex items-center gap-4 border-l-4 border-emerald-500">
-            <div className="p-3 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg shadow-sm">
-              <RotateCcw className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">No Prazo</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{ativos.length}</h3>
-            </div>
+        {/* Tabs - Escondidas para o Leitor */}
+        {isAdmin && (
+          <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-700">
+            <button
+              onClick={() => setActiveTab('novo')}
+              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'novo'
+                  ? 'border-primary text-primary dark:text-rose-400 dark:border-rose-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              Registrar Nova Retirada
+            </button>
+            <button
+              onClick={() => setActiveTab('ativos')}
+              className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+                activeTab === 'ativos'
+                  ? 'border-primary text-primary dark:text-rose-400 dark:border-rose-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              Processar Devolução ({ativos.length + atrasados.length})
+            </button>
           </div>
-          <div className="glass-card p-5 flex items-center gap-4 border-l-4 border-rose-500">
-            <div className="p-3 bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 rounded-lg shadow-sm">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Atrasados</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{atrasados.length}</h3>
-            </div>
-          </div>
-          <div className="glass-card p-5 flex items-center gap-4 border-l-4 border-blue-500">
-            <div className="p-3 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg shadow-sm">
-              <Calendar className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Histórico</p>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{data.length}</h3>
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* Tabs */}
-        <div className="flex space-x-2 border-b border-slate-200 dark:border-slate-700">
-          <button
-            onClick={() => setActiveTab('novo')}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === 'novo'
-                ? 'border-primary text-primary dark:text-rose-400 dark:border-rose-400'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            Registrar Nova Retirada
-          </button>
-          <button
-            onClick={() => setActiveTab('ativos')}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === 'ativos'
-                ? 'border-primary text-primary dark:text-rose-400 dark:border-rose-400'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            Processar Devolução ({ativos.length + atrasados.length})
-          </button>
-        </div>
-
-        {/* Tab: Nova Retirada */}
-        {activeTab === 'novo' && (
-          <div className="glass-card p-8 w-full animate-in zoom-in-95 duration-300">
-            <div className="flex flex-col items-center text-center space-y-6 py-12">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 flex items-center justify-center text-primary shadow-inner mb-2 ring-1 ring-primary/20">
-                <Plus className="w-12 h-12" />
+        {/* Tab: Nova Retirada (Apenas Admin) */}
+        {activeTab === 'novo' && isAdmin && (
+          <div className="glass-card p-6 max-w-2xl">
+            <div className="space-y-6">
+              <div>
+                <label className="sgb-label">Buscar Usuário</label>
+                <div className="flex gap-2">
+                  <input type="text" placeholder="Clique em 'Novo Empréstimo' para buscar..." className="sgb-input" disabled />
+                  <button onClick={abrirModal} className="sgb-btn-primary whitespace-nowrap flex items-center gap-2 shrink-0">
+                    <Plus className="w-4 h-4" />
+                    Novo Empréstimo
+                  </button>
+                </div>
               </div>
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
-                  Registrar Novo Empréstimo
-                </h2>
-                <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto text-lg">
-                  Inicie o processo de retirada selecionando um leitor e um livro disponível no catálogo.
-                </p>
-              </div>
-              <button 
-                onClick={abrirModal} 
-                className="sgb-btn-primary mt-4 px-8 py-4 text-lg font-semibold flex items-center gap-3 shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 rounded-xl"
-              >
-                <Plus className="w-6 h-6" />
-                Iniciar Empréstimo
-              </button>
             </div>
           </div>
         )}
 
-        {/* Tab: Devoluções */}
+        {/* Tab: Devoluções / Lista de Empréstimos */}
         {activeTab === 'ativos' && (
-          <div className="glass-card overflow-hidden animate-in slide-in-from-right-4 duration-300">
+          <div className="glass-card overflow-hidden">
             {loading ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-600 dark:text-slate-300">
-                <thead className="bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider">
+                <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 uppercase">
                   <tr>
-                    <th className="px-6 py-5 font-semibold">Livro</th>
-                    <th className="px-6 py-5 font-semibold">Leitor</th>
-                    <th className="px-6 py-5 font-semibold">Prazo</th>
-                    <th className="px-6 py-5 font-semibold">Status</th>
-                    <th className="px-6 py-5 font-semibold">Multa</th>
-                    <th className="px-6 py-5 font-semibold text-right">Ações</th>
+                    <th className="px-6 py-4">Livro</th>
+                    {isAdmin && <th className="px-6 py-4">Leitor</th>}
+                    <th className="px-6 py-4">Prazo</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Multa</th>
+                    {isAdmin && <th className="px-6 py-4">Ações</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {[...ativos, ...atrasados].length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-slate-400">Nenhum empréstimo ativo.</td>
+                      <td colSpan={isAdmin ? 6 : 4} className="text-center py-8 text-slate-400">Nenhum empréstimo ativo.</td>
                     </tr>
                   ) : (
                     [...ativos, ...atrasados].map((e) => (
@@ -310,9 +269,11 @@ export default function Emprestimos() {
                         <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-100">
                           {e.livro?.livro_titulo ?? (e.itens?.length ? `Exemplar ${e.itens.map(i => i.exemplar_id).join(', ')}` : '—')}
                         </td>
-                        <td className="px-6 py-4 dark:text-slate-300">
-                          {e.usuario?.usuario_nome ?? `ID ${e.usuario_id}`}
-                        </td>
+                        {isAdmin && (
+                          <td className="px-6 py-4 dark:text-slate-300">
+                            {e.usuario?.usuario_nome ?? `ID ${e.usuario_id}`}
+                          </td>
+                        )}
                         <td className="px-6 py-4 dark:text-slate-300 flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-slate-400" />
                           {fmt(e.emprestimo_data_prevista_devolucao)}
@@ -341,156 +302,161 @@ export default function Emprestimos() {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => pedirDevolucao(e)}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-700 dark:bg-slate-800 dark:hover:bg-rose-900/40 dark:text-slate-300 dark:hover:text-rose-400 font-medium rounded-lg transition-all"
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                            Processar
-                          </button>
-                        </td>
+                        {isAdmin && (
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={() => pedirDevolucao(e)}
+                              className="text-primary hover:text-rose-900 dark:text-rose-400 dark:hover:text-rose-300 font-bold flex items-center gap-1 text-sm"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Processar
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
-              </div>
             )}
           </div>
         )}
       </div>
 
-      {/* ─── Modal: Novo Empréstimo ─────────────────────────────────────── */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Novo Empréstimo</DialogTitle>
-            <DialogDescription>
-              Selecione o usuário e livro para registrar um novo empréstimo. Um exemplar disponível será selecionado automaticamente.
-            </DialogDescription>
-          </DialogHeader>
+      {/* ─── Modais (Ocultos no bloco se não for admin, mas renderizados condicionalmente abaixo) ─────────────────────────────────────── */}
+      {isAdmin && (
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            {/* O código do modal de criação continua igualzinho aqui */}
+            <DialogHeader>
+              <DialogTitle>Novo Empréstimo</DialogTitle>
+              <DialogDescription>
+                Selecione o usuário e livro para registrar um novo empréstimo. Um exemplar disponível será selecionado automaticamente.
+              </DialogDescription>
+            </DialogHeader>
 
-          {loadingModal ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="select-usuario">Usuário</Label>
-                <Select value={selectedUsuario} onValueChange={setSelectedUsuario}>
-                  <SelectTrigger id="select-usuario" className="w-full">
-                    <SelectValue placeholder="Selecione um usuário" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {usuariosList.length === 0 ? (
-                      <SelectItem value="_empty" disabled>Nenhum usuário ativo encontrado</SelectItem>
-                    ) : (
-                      usuariosList.map((u) => (
-                        <SelectItem key={u.usuario_id} value={String(u.usuario_id)}>
-                          {u.usuario_nome} — {u.usuario_email}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+            {loadingModal ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="select-livro">Livro</Label>
-                <Select value={selectedLivro} onValueChange={handleLivroChange}>
-                  <SelectTrigger id="select-livro" className="w-full">
-                    <SelectValue placeholder="Selecione um livro" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {livrosList.length === 0 ? (
-                      <SelectItem value="_empty" disabled>Nenhum livro ativo encontrado</SelectItem>
-                    ) : (
-                      livrosList.map((l) => (
-                        <SelectItem key={l.id} value={String(l.id)}>
-                          {l.titulo}
-                          {l.autores && l.autores.length > 0 ? ` — ${l.autores.map(a => a.autor.nome).join(', ')}` : ''}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedLivro && !loadingExemplares && (
-                <div className="text-sm px-1">
-                  {semExemplar ? (
-                    <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
-                      <AlertTriangle className="w-4 h-4" />
-                      Nenhum exemplar disponível para este livro
-                    </span>
-                  ) : (
-                    <span className="text-green-600 dark:text-green-400">
-                      ✓ {exemplaresList.length} exemplar(es) disponível(is) — um será selecionado automaticamente
-                    </span>
-                  )}
+            ) : (
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="select-usuario">Usuário</Label>
+                  <Select value={selectedUsuario} onValueChange={setSelectedUsuario}>
+                    <SelectTrigger id="select-usuario" className="w-full">
+                      <SelectValue placeholder="Selecione um usuário" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {usuariosList.length === 0 ? (
+                        <SelectItem value="_empty" disabled>Nenhum usuário ativo encontrado</SelectItem>
+                      ) : (
+                        usuariosList.map((u) => (
+                          <SelectItem key={u.usuario_id} value={String(u.usuario_id)}>
+                            {u.usuario_nome} — {u.usuario_email}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-              {loadingExemplares && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground px-1">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Verificando exemplares disponíveis...
+
+                <div className="space-y-2">
+                  <Label htmlFor="select-livro">Livro</Label>
+                  <Select value={selectedLivro} onValueChange={handleLivroChange}>
+                    <SelectTrigger id="select-livro" className="w-full">
+                      <SelectValue placeholder="Selecione um livro" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {livrosList.length === 0 ? (
+                        <SelectItem value="_empty" disabled>Nenhum livro ativo encontrado</SelectItem>
+                      ) : (
+                        livrosList.map((l) => (
+                          <SelectItem key={l.id} value={String(l.id)}>
+                            {l.titulo}
+                            {l.autores && l.autores.length > 0 ? ` — ${l.autores.map(a => a.autor.nome).join(', ')}` : ''}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="input-data-devolucao">Data de Devolução Prevista</Label>
-                <Input
-                  id="input-data-devolucao"
-                  type="date"
-                  value={selectedDataDevolucao}
-                  onChange={(e) => setSelectedDataDevolucao(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full"
-                />
+                {selectedLivro && !loadingExemplares && (
+                  <div className="text-sm px-1">
+                    {semExemplar ? (
+                      <span className="text-red-600 dark:text-red-400 flex items-center gap-1">
+                        <AlertTriangle className="w-4 h-4" />
+                        Nenhum exemplar disponível para este livro
+                      </span>
+                    ) : (
+                      <span className="text-green-600 dark:text-green-400">
+                        ✓ {exemplaresList.length} exemplar(es) disponível(is) — um será selecionado automaticamente
+                      </span>
+                    )}
+                  </div>
+                )}
+                {loadingExemplares && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground px-1">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Verificando exemplares disponíveis...
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="input-data-devolucao">Data de Devolução Prevista</Label>
+                  <Input
+                    id="input-data-devolucao"
+                    type="date"
+                    value={selectedDataDevolucao}
+                    onChange={(e) => setSelectedDataDevolucao(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full"
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={submitting}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleCriar}
-              disabled={submitting || !selectedUsuario || !selectedLivro || !selectedDataDevolucao || semExemplar || exemplaresList.length === 0}
-            >
-              {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Registrar Empréstimo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalOpen(false)} disabled={submitting}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCriar}
+                disabled={submitting || !selectedUsuario || !selectedLivro || !selectedDataDevolucao || semExemplar || exemplaresList.length === 0}
+              >
+                {submitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Registrar Empréstimo
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* ─── Modal: Confirmar Devolução ─────────────────────────────────── */}
-      <Dialog open={devolverDialog} onOpenChange={setDevolverDialog}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Confirmar Devolução</DialogTitle>
-            <DialogDescription>
-              Deseja registrar a devolução do livro{' '}
-              <strong>{devolverTarget?.livro?.livro_titulo ?? `#${devolverTarget?.livro_id}`}</strong>{' '}
-              emprestado para{' '}
-              <strong>{devolverTarget?.usuario?.usuario_nome ?? `ID ${devolverTarget?.usuario_id}`}</strong>?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDevolverDialog(false)} disabled={devolvendo}>
-              Cancelar
-            </Button>
-            <Button onClick={confirmarDevolucao} disabled={devolvendo}>
-              {devolvendo && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirmar Devolução
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isAdmin && (
+        <Dialog open={devolverDialog} onOpenChange={setDevolverDialog}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Confirmar Devolução</DialogTitle>
+              <DialogDescription>
+                Deseja registrar a devolução do livro{' '}
+                <strong>{devolverTarget?.livro?.livro_titulo ?? `#${devolverTarget?.livro_id}`}</strong>{' '}
+                emprestado para{' '}
+                <strong>{devolverTarget?.usuario?.usuario_nome ?? `ID ${devolverTarget?.usuario_id}`}</strong>?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDevolverDialog(false)} disabled={devolvendo}>
+                Cancelar
+              </Button>
+              <Button onClick={confirmarDevolucao} disabled={devolvendo}>
+                {devolvendo && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Confirmar Devolução
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </DashboardLayout>
   );
 }
