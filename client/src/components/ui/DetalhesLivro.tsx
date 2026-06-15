@@ -83,8 +83,8 @@ export default function DetalhesLivro({ livro, open, onOpenChange }: DetalhesLiv
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0">
-                {/* Hero section with cover */}
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto scrollbar-hide p-0">
+        {/* Hero section with cover */}
                 <div className="relative overflow-hidden rounded-t-lg">
                     {/* Gradient background */}
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent dark:from-primary/30 dark:via-primary/15 dark:to-transparent" />
@@ -129,8 +129,8 @@ export default function DetalhesLivro({ livro, open, onOpenChange }: DetalhesLiv
                             <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start mt-2">
                                 <span
                                     className={`px-3 py-1 rounded-full text-xs font-bold ${livro.status === 1
-                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                                         }`}
                                 >
                                     {livro.status === 1 ? '● Ativo' : '● Inativo'}
@@ -207,7 +207,7 @@ export default function DetalhesLivro({ livro, open, onOpenChange }: DetalhesLiv
                                 </button>
                             </div>
                             {/* Conteúdo rolável */}
-                            <div className="overflow-y-auto flex-1">
+                            <div className={`overflow-y-auto scrollbar-hide flex-1 ${listaExemplares.length > 3 ? 'max-h-[180px]' : ''}`}>
                                 {carregandoExemplares ? (
                                     <div className="flex items-center justify-center py-6">
                                         <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
@@ -220,7 +220,7 @@ export default function DetalhesLivro({ livro, open, onOpenChange }: DetalhesLiv
                                     </div>
                                 ) : (
                                     <table className="w-full text-left text-sm">
-                                        <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 sticky top-0">
+                                        <thead className="sticky top-0 z-20 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700 shadow-sm">
                                             <tr>
                                                 <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Código de Barras</th>
                                                 <th className="px-4 py-2.5 font-semibold text-xs uppercase tracking-wider">Condição</th>

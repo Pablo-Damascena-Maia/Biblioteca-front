@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Clock, Server } from 'lucide-react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { emprestimos, reservas, usuarios, livros, checkServicos } from '@/services/api';
 import { toast } from 'sonner';
@@ -178,18 +178,56 @@ export default function Dashboard() {
               <div className="space-y-6">
                 {/* Recent activity */}
                 <div className="glass-card p-6">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Atividade Recente</h3>
+                  <div className="flex items-center gap-2 mb-6">
+                    <Clock className="w-5 h-5 text-indigo-500" />
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                      Atividade Recente
+                    </h3>
+                  </div>
+
                   {atividades.length === 0 ? (
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Nenhuma atividade recente.</p>
+                    <div className="text-center py-10">
+                      <Clock className="w-10 h-10 mx-auto text-slate-400 mb-3" />
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Nenhuma atividade recente.
+                      </p>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
-                      {atividades.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
-                          <div>
-                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">{a.descricao}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Empréstimo registrado</p>
+                    <div className="space-y-4">
+                      {atividades.map((a, index) => (
+                        <div
+                          key={a.id || index}
+                          className="group relative flex items-start gap-4 p-4 rounded-xl
+                                     bg-slate-50/70 dark:bg-slate-800/30
+                                     border border-slate-200/50 dark:border-slate-700/50
+                                     hover:border-indigo-500/40
+                                     hover:bg-slate-100/70 dark:hover:bg-slate-800/50
+                                     transition-all duration-300"
+                        >
+                          {/* Indicador */}
+                          <div className="flex-shrink-0">
+                            <div className="w-3 h-3 mt-2 rounded-full bg-indigo-500 ring-4 ring-indigo-500/20" />
                           </div>
-                          <span className="text-xs text-slate-400">{a.hora}</span>
+
+                          {/* Conteúdo */}
+                          <div className="flex-1">
+                            <p className="font-semibold text-slate-800 dark:text-slate-100">
+                              {a.descricao}
+                            </p>
+
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                              Empréstimo registrado
+                            </p>
+                          </div>
+
+                          {/* Hora */}
+                          <span
+                            className="px-3 py-1 text-xs font-medium rounded-full
+                                       bg-indigo-100 text-indigo-700
+                                       dark:bg-indigo-900/30 dark:text-indigo-300"
+                          >
+                            {a.hora}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -198,19 +236,43 @@ export default function Dashboard() {
 
                 {/* Microservices status */}
                 <div className="glass-card p-6">
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4">Status dos Microsserviços</h3>
+                  <div className="flex items-center gap-2 mb-6">
+                    <Server className="w-5 h-5 text-cyan-500" />
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                      Status dos Microsserviços
+                    </h3>
+                  </div>
+
                   <div className="space-y-3">
                     {servicos.map((s) => (
-                      <div key={s.nome} className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">{s.nome}</span>
+                      <div
+                        key={s.nome}
+                        className="flex items-center justify-between p-3 rounded-xl
+                                   bg-slate-50/70 dark:bg-slate-800/30
+                                   border border-slate-200/50 dark:border-slate-700/50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-2.5 h-2.5 rounded-full ${
+                              s.online
+                                ? 'bg-emerald-500 animate-pulse'
+                                : 'bg-rose-500'
+                            }`}
+                          />
+
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {s.nome}
+                          </span>
+                        </div>
+
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${
                             s.online
                               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                               : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
                           }`}
                         >
-                          {s.online ? 'Online' : 'Offline'}
+                          {s.online ? '🟢 Online' : '🔴 Offline'}
                         </span>
                       </div>
                     ))}

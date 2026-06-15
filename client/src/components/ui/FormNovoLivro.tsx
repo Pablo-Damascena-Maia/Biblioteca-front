@@ -149,7 +149,7 @@ export default function FormNovoLivro({ open, onOpenChange, onSucesso }: FormNov
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto scrollbar-hide">
                 <DialogHeader>
                     <DialogTitle>Cadastrar Novo Livro</DialogTitle>
                     <DialogDescription>
