@@ -80,7 +80,7 @@ export default function Emprestimos() {
     try {
       const [u, l] = await Promise.all([apiUsuarios.listar(), apiLivros.listar()]);
       setUsuariosList(Array.isArray(u) ? u.filter((x) => x.usuario_status === 'Ativo') : []);
-      setLivrosList(Array.isArray(l) ? l.filter((x) => x.status === 1) : []);
+      setLivrosList(Array.isArray(l) ? l.filter((x) => x.status == 1) : []);
     } catch {
       toast.error('Erro ao carregar dados para o formulário');
     } finally {
@@ -96,7 +96,11 @@ export default function Emprestimos() {
     setLoadingExemplares(true);
     try {
       const ex = await apiExemplares.listarPorLivro(Number(livroId));
-      const disponiveis = Array.isArray(ex) ? ex.filter((e) => e.disponibilidade === 'Disponivel') : [];
+      const disponiveis = Array.isArray(ex) ? ex.filter((e) => {
+        const disp = (e.disponibilidade || (e as any).statusDisponibilidade || '').toString().toLowerCase();
+        const matchesLivro = Number(e.livroId || (e as any).livro_id) === Number(livroId);
+        return disp === 'disponivel' && matchesLivro;
+      }) : [];
       setExemplaresList(disponiveis);
       if (disponiveis.length === 0) setSemExemplar(true);
     } catch {
@@ -140,7 +144,11 @@ export default function Emprestimos() {
       setModalOpen(false);
       toast.success('Empréstimo criado com sucesso!');
     } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.response?.data?.message || 'Erro ao criar empréstimo';
+      const errData = err?.response?.data;
+      const msg =
+        (typeof errData?.error === 'string' ? errData.error : errData?.error?.message) ||
+        errData?.message ||
+        'Erro ao criar empréstimo';
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -166,8 +174,13 @@ export default function Emprestimos() {
       );
       toast.success('Devolução registrada!');
       setDevolverDialog(false);
-    } catch {
-      toast.error('Erro ao registrar devolução');
+    } catch (err: any) {
+      const errData = err?.response?.data;
+      const msg =
+        (typeof errData?.error === 'string' ? errData.error : errData?.error?.message) ||
+        errData?.message ||
+        'Erro ao registrar devolução';
+      toast.error(msg);
     } finally {
       setDevolvendo(false);
     }
