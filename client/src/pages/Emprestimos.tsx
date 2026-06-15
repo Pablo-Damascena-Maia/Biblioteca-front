@@ -163,15 +163,26 @@ export default function Emprestimos() {
     if (!devolverTarget) return;
     setDevolvendo(true);
     try {
-      await api.devolver(devolverTarget.emprestimo_id);
+      const result = await api.devolver(devolverTarget.emprestimo_id);
+      const isAtrasado = result.devolucao_possui_multa === 1 || result.houve_atraso;
+      const novoStatus = isAtrasado ? 'Atrasado' : 'Devolvido';
+      const valorMulta = result.multa?.multa_valor || result.valorMulta;
+
       setData((prev) =>
         prev.map((x) =>
           x.emprestimo_id === devolverTarget.emprestimo_id
-            ? { ...x, emprestimo_status: 'Devolvido' }
+            ? { ...x, emprestimo_status: novoStatus, emprestimo_multa_valor: valorMulta }
             : x,
         ),
       );
-      toast.success('Devolução registrada!');
+
+      if (isAtrasado) {
+        toast.error(`Devolução com atraso! Multa gerada: R$ ${Number(valorMulta).toFixed(2).replace('.', ',')}`, {
+          duration: 6000,
+        });
+      } else {
+        toast.success('Devolução registrada com sucesso no prazo!');
+      }
       setDevolverDialog(false);
     } catch {
       toast.error('Erro ao registrar devolução');
