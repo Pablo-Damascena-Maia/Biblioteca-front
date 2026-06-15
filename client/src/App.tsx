@@ -12,6 +12,7 @@ import Reservas from "./pages/Reservas";
 import Usuarios from "./pages/Usuarios";
 import Relatorios from "./pages/Relatorios";
 import Login from "./pages/Login";
+import Cadastro from "./pages/Cadastro"; // Importando a nova página de cadastro público
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
 
@@ -20,7 +21,8 @@ function ProtectedRoutes() {
   const [location, navigate] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !token && location !== '/login') {
+    // Evita o loop de redirecionamento permitindo o acesso livre tanto para /login quanto para /cadastro
+    if (!isLoading && !token && location !== '/login' && location !== '/cadastro') {
       navigate('/login');
     }
   }, [token, isLoading, location]);
@@ -53,6 +55,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+      <Route path="/cadastro" component={Cadastro} /> {/* Rota pública adicionada aqui */}
       <Route component={ProtectedRoutes} />
     </Switch>
   );
