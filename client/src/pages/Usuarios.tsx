@@ -65,24 +65,35 @@ export default function Usuarios() {
     setSaving(true);
     try {
       if (editTarget) {
-        const payload: Partial<Usuario> = {
-          usuario_nome: form.usuario_nome,
-          usuario_email: form.usuario_email,
-          usuario_tipo: form.usuario_tipo,
-          usuario_status: form.usuario_status,
+        // Payload mapeado para as chaves que a API (back-end) exige
+        const payload: any = {
+          nome: form.usuario_nome,
+          email: form.usuario_email,
+          tipo: form.usuario_tipo,
+          status: form.usuario_status,
         };
         const updated = await api.atualizar(editTarget.usuario_id, payload);
         setData((prev) =>
           prev.map((x) => (x.usuario_id === editTarget.usuario_id ? { ...x, ...updated } : x))
         );
-        toast.success('Usuário atualizado');
+        toast.success('Usuário atualizado com sucesso');
       } else {
         if (!form.usuario_senha) {
           toast.error('Senha obrigatória');
           setSaving(false);
           return;
         }
-        const novo = await api.criar({ ...form });
+        
+        // Payload mapeado para as chaves que a API (back-end) exige
+        const payloadCriacao: any = {
+          nome: form.usuario_nome,
+          email: form.usuario_email,
+          senha: form.usuario_senha,
+          tipo: form.usuario_tipo,
+          status: form.usuario_status
+        };
+
+        const novo = await api.criar(payloadCriacao);
         setData((prev) => [...prev, novo]);
         toast.success('Usuário criado com sucesso');
       }
