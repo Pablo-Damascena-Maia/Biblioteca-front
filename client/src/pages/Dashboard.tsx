@@ -79,11 +79,23 @@ export default function Dashboard() {
           ]);
 
           // Recent activity
-          const recentes = emprestimosData.value.slice(0, 5).map((e, i) => ({
-            id: e.emprestimo_id,
-            descricao: `Empréstimo #${e.emprestimo_id} — ${e.usuario?.usuario_nome || `Usuário ${e.usuario_id}`}`,
-            hora: `há ${i + 1}h`,
-          }));
+          const recentes = emprestimosData.value.slice(0, 5).map((e) => {
+            let horaStr = 'agora mesmo';
+            if (e.emprestimo_data_emprestimo) {
+              const diffMs = new Date().getTime() - new Date(e.emprestimo_data_emprestimo).getTime();
+              const diffMin = Math.floor(diffMs / 60000);
+              const diffHr = Math.floor(diffMin / 60);
+              const diffDay = Math.floor(diffHr / 24);
+              if (diffDay > 0) horaStr = `há ${diffDay} d`;
+              else if (diffHr > 0) horaStr = `há ${diffHr} h`;
+              else if (diffMin > 0) horaStr = `há ${diffMin} min`;
+            }
+            return {
+              id: e.emprestimo_id,
+              descricao: `Empréstimo #${e.emprestimo_id} — ${e.usuario?.usuario_nome || `Usuário ${e.usuario_id}`}`,
+              hora: horaStr,
+            };
+          });
           setAtividades(recentes);
         }
       } catch {

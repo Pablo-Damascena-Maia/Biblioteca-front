@@ -56,17 +56,63 @@ export default function Cadastro() {
       {/* ─── PAREDE DE LIVROS (IGUAL AO LOGIN) ─── */}
       <div className="absolute inset-0 z-0 flex flex-wrap content-start items-end bg-[#251610] opacity-90">
         {paredeDeLivrosData.map((livro) => (
-          <div key={livro.id} className={`relative flex-grow ${livro.largura} ${livro.altura} group cursor-pointer border-b-[16px] border-[#1a0f0a] shadow-inner`}>
+          <div
+            key={livro.id}
+            className={`relative flex-grow ${livro.largura} ${livro.altura} group cursor-pointer border-b-[16px] border-[#1a0f0a] shadow-inner`}
+          >
             <div className="absolute inset-0 bg-[radial-gradient(#4a3b32_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.03] pointer-events-none" />
-            <div className={`absolute bottom-0 w-full h-full ${livro.cor} rounded-t-[3px] origin-bottom flex flex-col justify-evenly items-center border-l border-black/40 border-r border-black/20 shadow-[inset_6px_0_8px_rgba(0,0,0,0.6),inset_-3px_0_5px_rgba(0,0,0,0.4),3px_0_6px_rgba(0,0,0,0.7)] transition-transform duration-300 ease-out group-hover:-translate-y-6 group-hover:scale-[1.08] group-hover:z-50 z-10`}>
-              <div className={`absolute inset-0 bg-black/10 rounded-t-[3px] ${livro.desgaste ? 'opacity-30' : 'opacity-10'}`} />
-              {/* Estilos decorativos */}
-              {livro.estilo === 0 && <div className="w-full h-[2px] bg-amber-950/60 z-20" />}
-              {livro.estilo === 4 && <div className="w-2/3 h-5 bg-[#f4ecd8]/80 rounded-[1px] z-20" />}
+
+            <div
+              className={`absolute bottom-0 w-full h-full ${livro.cor} rounded-t-[3px] origin-bottom flex flex-col justify-evenly items-center
+                border-l border-black/40 border-r border-black/20
+                shadow-[inset_6px_0_8px_rgba(0,0,0,0.6),inset_-3px_0_5px_rgba(0,0,0,0.4),3px_0_6px_rgba(0,0,0,0.7)]
+                transition-transform duration-300 ease-out will-change-transform
+                group-hover:-translate-y-6 group-hover:scale-[1.08] group-hover:z-50
+                z-10
+              `}
+            >
+              <div className={`absolute inset-0 bg-black/10 rounded-t-[3px] ${livro.desgaste ? 'opacity-30' : 'opacity-10'}`} style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.95" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%" height="100%" filter="url(%23noiseFilter)"/%3E%3C/svg%3E")'}}></div>
+
+              {/* Detalhes mantidos (0 a 4) */}
+              {livro.estilo === 0 && (
+                <>
+                  <div className="w-full h-[2px] bg-amber-950/60 shadow-sm z-20" />
+                  <div className="w-1/2 h-4 bg-amber-950/30 rounded-sm border border-amber-950/50 z-20" />
+                  <div className="w-full h-[2px] bg-amber-950/60 shadow-sm z-20" />
+                </>
+              )}
+              {livro.estilo === 1 && (
+                <>
+                  <div className="w-full h-[1px] bg-amber-900/40 z-20" />
+                  <div className="w-2/3 h-[1px] bg-amber-900/40 z-20" />
+                  <div className="w-1/3 h-[1px] bg-amber-900/40 z-20" />
+                  <div className="w-full h-[1px] bg-amber-900/40 z-20" />
+                </>
+              )}
+              {livro.estilo === 2 && (
+                <>
+                  <div className="w-4 h-4 border-2 border-amber-950/40 rounded-full opacity-60 flex items-center justify-center z-20">
+                    <div className="w-1 h-1 bg-amber-950/60 rounded-full"></div>
+                  </div>
+                </>
+              )}
+              {livro.estilo === 3 && (
+                <>
+                  <div className="w-full h-3 border-y border-amber-950/50 bg-amber-950/20 z-20" />
+                </>
+              )}
+              {livro.estilo === 4 && (
+                <>
+                  <div className="w-2/3 h-5 bg-[#f4ecd8]/80 rounded-[1px] shadow-inner border border-black/20 flex flex-col justify-center items-center gap-0.5 z-20 opacity-90">
+                    <div className="w-3/4 h-[1px] bg-black/30"></div>
+                    <div className="w-1/2 h-[1px] bg-black/20"></div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ))}
-        <div className="absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_10%,rgba(15,8,5,0.9)_100%)] pointer-events-none" />
+        <div className="absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_10%,rgba(15,8,5,0.9)_100%)] pointer-events-none"></div>
       </div>
 
       {/* ─── FORMULÁRIO (ESTRUTURA DE LOGIN) ─── */}
