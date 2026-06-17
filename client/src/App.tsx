@@ -11,6 +11,7 @@ import Emprestimos from "./pages/Emprestimos";
 import Reservas from "./pages/Reservas";
 import Usuarios from "./pages/Usuarios";
 import Relatorios from "./pages/Relatorios";
+import Perfil from "./pages/Perfil";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro"; // Importando a nova página de cadastro público
 import { Loader2 } from "lucide-react";
@@ -45,6 +46,7 @@ function ProtectedRoutes() {
       <Route path="/reservas" component={Reservas} />
       <Route path="/usuarios" component={Usuarios} />
       <Route path="/relatorios" component={Relatorios} />
+      <Route path="/perfil" component={Perfil} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

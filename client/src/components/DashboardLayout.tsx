@@ -1,5 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'wouter';
+import { usuarios } from '@/services/api';
 import {
   BookOpen,
   Users,
@@ -12,6 +13,7 @@ import {
   X,
   Sun,
   Moon,
+  UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -97,9 +99,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
               {/* User info (desktop) */}
               {usuario && (
-                <div className="hidden md:flex items-center gap-2.5 pl-3 ml-1 border-l border-slate-200 dark:border-slate-700">
-                  <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                    {initials}
+                <Link
+                  href="/perfil"
+                  className="hidden md:flex items-center gap-2.5 pl-3 ml-1 border-l border-slate-200 dark:border-slate-700 hover:opacity-80 transition-opacity"
+                >
+                  <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center text-xs font-bold shadow-sm overflow-hidden">
+                    <img
+                      src={`${usuarios.getFotoUrl(usuario.usuario_id)}?t=${Date.now()}`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).parentElement!.textContent = initials;
+                      }}
+                    />
                   </div>
                   <div className="hidden lg:block">
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-none">
@@ -109,7 +122,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       {usuario.usuario_tipo}
                     </p>
                   </div>
-                </div>
+                </Link>
               )}
 
               {/* Logout (desktop) */}
@@ -170,8 +183,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800">
               {usuario && (
                 <div className="flex items-center gap-3 mb-3 px-4">
-                  <div className="w-9 h-9 rounded-full bg-secondary text-white flex items-center justify-center text-xs font-bold">
-                    {initials}
+                  <div className="w-9 h-9 rounded-full bg-secondary text-white flex items-center justify-center text-xs font-bold overflow-hidden">
+                    <img
+                      src={`${usuarios.getFotoUrl(usuario.usuario_id)}?t=${Date.now()}`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).parentElement!.textContent = initials;
+                      }}
+                    />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -181,6 +202,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </div>
                 </div>
               )}
+              <Link
+                href="/perfil"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 w-full rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+              >
+                <UserCircle className="w-4 h-4" />
+                Meu Perfil
+              </Link>
               <button
                 onClick={() => { logout(); setMobileOpen(false); }}
                 className="flex items-center gap-3 px-4 py-2.5 w-full rounded-lg text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-destructive transition-colors"

@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { BookOpen, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { usuarios as api } from '@/services/api';
+import CompletarPerfil from '@/components/CompletarPerfil';
 
 const TOTAL_LIVROS = 350;
 
@@ -25,6 +26,9 @@ export default function Cadastro() {
   const [senha, setSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // estado pós-cadastro
+  const [novoUsuarioId, setNovoUsuarioId] = useState<number | null>(null);
+
   // Geração de dados idêntica ao Login
   const paredeDeLivrosData = useMemo(() => {
     return Array.from({ length: TOTAL_LIVROS }, (_, i) => ({
@@ -41,9 +45,15 @@ export default function Cadastro() {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.criar({ nome, email, senha, tipo: 'Leitor', status: 'Ativo' });
+      const resultado = await api.criar({ nome, email, senha, tipo: 'Leitor', status: 'Ativo' } as any);
       toast.success('Conta criada com sucesso!');
-      navigate('/login');
+      // pega o ID do usuario criado para usar no formulario de completar perfil
+      const id = resultado?.usuario_id || resultado?.id;
+      if (id) {
+        setNovoUsuarioId(id);
+      } else {
+        navigate('/login');
+      }
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'Erro ao criar conta');
     } finally {
@@ -115,37 +125,48 @@ export default function Cadastro() {
         <div className="absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_10%,rgba(15,8,5,0.9)_100%)] pointer-events-none"></div>
       </div>
 
-      {/* ─── FORMULÁRIO (ESTRUTURA DE LOGIN) ─── */}
+      {/* ─── FORMULÁRIO ─── */}
       <div className="relative z-30 w-full max-w-md bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.7)] overflow-hidden border border-white/30">
         <div className="bg-primary p-8 text-center border-b border-black/5">
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-md shadow-inner ring-2 ring-white/40">
             <BookOpen className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Cadastro</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {novoUsuarioId ? 'Complete seu perfil' : 'Cadastro'}
+          </h1>
+          {novoUsuarioId && (
+            <p className="text-white/70 text-sm">Preencha seus dados para começar</p>
+          )}
         </div>
         <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="text-slate-700 dark:text-slate-300 font-bold">Nome</label>
-              <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} required className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200" />
-            </div>
-            <div>
-              <label className="text-slate-700 dark:text-slate-300 font-bold">Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200" />
-            </div>
-            <div>
-              <label className="text-slate-700 dark:text-slate-300 font-bold">Senha</label>
-              <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200" />
-            </div>
-            <button type="submit" disabled={loading} className="w-full py-3.5 bg-primary text-white rounded-lg font-bold hover:shadow-lg transition-all">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Criar Conta'}
-            </button>
-            <div className="text-center mt-4">
-              <button type="button" onClick={() => navigate('/login')} className="text-sm font-bold text-slate-500 hover:text-primary">
-                Já tem uma conta? <span className="text-primary">Faça login</span>
+          {novoUsuarioId ? (
+            /* ─── Formulário de completar perfil (pós-cadastro) ─── */
+            <CompletarPerfil usuarioId={novoUsuarioId} />
+          ) : (
+            /* ─── Formulário de cadastro (original) ─── */
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="text-slate-700 dark:text-slate-300 font-bold">Nome</label>
+                <input type="text" value={nome} onChange={(e) => setNome(e.target.value)} required className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200" />
+              </div>
+              <div>
+                <label className="text-slate-700 dark:text-slate-300 font-bold">Email</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200" />
+              </div>
+              <div>
+                <label className="text-slate-700 dark:text-slate-300 font-bold">Senha</label>
+                <input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} required className="w-full p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200" />
+              </div>
+              <button type="submit" disabled={loading} className="w-full py-3.5 bg-primary text-white rounded-lg font-bold hover:shadow-lg transition-all">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Criar Conta'}
               </button>
-            </div>
-          </form>
+              <div className="text-center mt-4">
+                <button type="button" onClick={() => navigate('/login')} className="text-sm font-bold text-slate-500 hover:text-primary">
+                  Já tem uma conta? <span className="text-primary">Faça login</span>
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

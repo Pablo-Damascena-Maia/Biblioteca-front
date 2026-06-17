@@ -242,6 +242,16 @@ export const usuarios = {
     const { data } = await clientUsuario.patch(`/usuarios/${id}/senha`, payload);
     return data.data ?? data;
   },
+  uploadFoto: async (id: number, arquivo: File): Promise<void> => {
+    const formData = new FormData();
+    formData.append('file', arquivo);
+    await clientUsuario.post(`/usuarios/${id}/foto`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getFotoUrl: (id: number): string => {
+    return `${BASE.usuario}/usuarios/${id}/foto`;
+  },
 };
 
 // ─── CATÁLOGO — LIVROS ────────────────────────────────────────────────────────
