@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, ImagePlus, X } from 'lucide-react';
 import { livros, autores as autoresApi, generos as generosApi, Autor, Genero, CriarLivroPayload } from '@/services/api';
 import { toast } from 'sonner';
+import ImageCropper from '@/components/ui/ImageCropper';
 
 interface FormNovoLivroProps {
     open: boolean;
@@ -43,6 +44,9 @@ export default function FormNovoLivro({ open, onOpenChange, onSucesso }: FormNov
     // Estado da capa
     const [arquivoCapa, setArquivoCapa] = useState<File | null>(null);
     const [previewCapa, setPreviewCapa] = useState<string | null>(null);
+    // Estado do cropper
+    const [cropperAberto, setCropperAberto] = useState(false);
+    const [imagemParaCropar, setImagemParaCropar] = useState<string | null>(null);
     const inputCapaRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -65,6 +69,9 @@ export default function FormNovoLivro({ open, onOpenChange, onSucesso }: FormNov
             setArquivoCapa(null);
             if (previewCapa) URL.revokeObjectURL(previewCapa);
             setPreviewCapa(null);
+            if (imagemParaCropar) URL.revokeObjectURL(imagemParaCropar);
+            setImagemParaCropar(null);
+            setCropperAberto(false);
         }
     }, [open]);
 
@@ -97,9 +104,28 @@ export default function FormNovoLivro({ open, onOpenChange, onSucesso }: FormNov
             toast.error('Arquivo muito grande. Máximo: 5 MB.');
             return;
         }
+        // Abre o cropper ao invés de aceitar direto
+        if (imagemParaCropar) URL.revokeObjectURL(imagemParaCropar);
+        const url = URL.createObjectURL(arquivo);
+        setImagemParaCropar(url);
+        setCropperAberto(true);
+        // Limpa o input para permitir re-seleção do mesmo arquivo
+        if (inputCapaRef.current) inputCapaRef.current.value = '';
+    };
+
+    const handleCropConfirm = (croppedFile: File) => {
         if (previewCapa) URL.revokeObjectURL(previewCapa);
-        setArquivoCapa(arquivo);
-        setPreviewCapa(URL.createObjectURL(arquivo));
+        setArquivoCapa(croppedFile);
+        setPreviewCapa(URL.createObjectURL(croppedFile));
+        setCropperAberto(false);
+        if (imagemParaCropar) URL.revokeObjectURL(imagemParaCropar);
+        setImagemParaCropar(null);
+    };
+
+    const handleCropCancel = () => {
+        setCropperAberto(false);
+        if (imagemParaCropar) URL.revokeObjectURL(imagemParaCropar);
+        setImagemParaCropar(null);
     };
 
     const removerCapa = () => {
@@ -148,6 +174,7 @@ export default function FormNovoLivro({ open, onOpenChange, onSucesso }: FormNov
     };
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto scrollbar-hide">
                 <DialogHeader>
@@ -352,5 +379,18 @@ export default function FormNovoLivro({ open, onOpenChange, onSucesso }: FormNov
                 </form>
             </DialogContent>
         </Dialog>
+
+        {/* Cropper de imagem */}
+        {imagemParaCropar && (
+            <ImageCropper
+                open={cropperAberto}
+                imageSrc={imagemParaCropar}
+                onCropComplete={handleCropConfirm}
+                onCancel={handleCropCancel}
+                title="Recortar Capa do Livro"
+                description="Ajuste a imagem na área de corte. A capa será salva em 800×1280px (5:8)."
+            />
+        )}
+        </>
     );
 }

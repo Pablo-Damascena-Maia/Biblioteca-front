@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usuarios } from '@/services/api';
+import ImageCropper from '@/components/ui/ImageCropper';
 import DashboardLayout from '@/components/DashboardLayout';
 import {
   Dialog,
@@ -47,6 +48,10 @@ export default function Perfil() {
   const [fotoError, setFotoError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estado do cropper de foto de perfil
+  const [cropperAberto, setCropperAberto] = useState(false);
+  const [imagemParaCropar, setImagemParaCropar] = useState<string | null>(null);
+
   // modais
   const [modalDados, setModalDados] = useState(false);
   const [modalEndereco, setModalEndereco] = useState(false);
@@ -85,8 +90,8 @@ export default function Perfil() {
     }
   }
 
-  // ─── Upload de foto ─────────────────────────────────────────────────────────
-  async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
+  // ─── Upload de foto (abre cropper) ──────────────────────────────────────────
+  function handleSelecionarFoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
@@ -97,9 +102,20 @@ export default function Perfil() {
       toast.error('Arquivo muito grande. Máximo 5MB.');
       return;
     }
+    // Abre o cropper
+    if (imagemParaCropar) URL.revokeObjectURL(imagemParaCropar);
+    setImagemParaCropar(URL.createObjectURL(file));
+    setCropperAberto(true);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  async function handleCropConfirm(croppedFile: File) {
+    setCropperAberto(false);
+    if (imagemParaCropar) URL.revokeObjectURL(imagemParaCropar);
+    setImagemParaCropar(null);
     try {
       setUploading(true);
-      await usuarios.uploadFoto(authUser!.usuario_id, file);
+      await usuarios.uploadFoto(authUser!.usuario_id, croppedFile);
       setFotoKey(Date.now());
       setFotoError(false);
       toast.success('Foto atualizada com sucesso!');
@@ -107,8 +123,13 @@ export default function Perfil() {
       toast.error('Erro ao enviar foto');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  }
+
+  function handleCropCancel() {
+    setCropperAberto(false);
+    if (imagemParaCropar) URL.revokeObjectURL(imagemParaCropar);
+    setImagemParaCropar(null);
   }
 
   // ─── Abrir modais (limpa valores padrão do banco) ───────────────────────────
@@ -308,7 +329,7 @@ export default function Perfil() {
                     )}
                   </div>
                 </button>
-                <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png" onChange={handleUploadFoto} className="hidden" />
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png" onChange={handleSelecionarFoto} className="hidden" />
               </div>
 
               {/* Nome + badges */}
@@ -548,6 +569,22 @@ export default function Perfil() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cropper de foto de perfil */}
+      {imagemParaCropar && (
+        <ImageCropper
+          open={cropperAberto}
+          imageSrc={imagemParaCropar}
+          onCropComplete={handleCropConfirm}
+          onCancel={handleCropCancel}
+          aspectRatio={1}
+          outputWidth={800}
+          outputHeight={800}
+          title="Recortar Foto de Perfil"
+          description="Ajuste sua foto na área de corte. A imagem será salva em 800×800px."
+          cropShape="round"
+        />
+      )}
     </DashboardLayout>
   );
 }

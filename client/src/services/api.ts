@@ -357,7 +357,7 @@ export const exemplares = {
     statusDisponibilidade?: 'Disponivel' | 'Emprestado' | 'Manutencao' | 'Perdido';
     dataAquisicao: string;
   }) => {
-    const { data } = await clientCatalogo.post(`/livros/${livroId}/exemplares`, payload);
+    const { data } = await clientCatalogo.post(`/exemplares/livro/${livroId}`, payload);
     return data.data ?? data;
   },
   // PATCH /exemplares/:id/status

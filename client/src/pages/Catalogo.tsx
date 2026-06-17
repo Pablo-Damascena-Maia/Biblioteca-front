@@ -9,6 +9,7 @@ import DetalhesLivro from '@/components/ui/DetalhesLivro';
 import FormNovoAutor from '@/components/ui/FormNovoAutor';
 import FormNovoGenero from '@/components/ui/FormNovoGenero';
 import FormEditarLivro from '@/components/ui/FormEditarLivro';
+import CatalogoLeitor from '@/pages/CatalogoLeitor';
 
 export default function Catalogo() {
   const [data, setData] = useState<Livro[]>([]);
@@ -63,6 +64,11 @@ export default function Catalogo() {
       : '';
     return tituloLivro.includes(termoBusca) || nomeAutor.includes(termoBusca);
   });
+
+  // Leitor vê o catálogo visual com cards; Admin vê a tabela de gerenciamento
+  if (!isAdmin) {
+    return <CatalogoLeitor />;
+  }
 
   return (
     <DashboardLayout>
