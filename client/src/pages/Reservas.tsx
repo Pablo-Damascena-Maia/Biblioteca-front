@@ -13,12 +13,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-function statusBadge(s: string) {
-  if (s === 'Ativa') return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
-  if (s === 'Cancelada') return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
+function statusBadge(s: string | number) {
+  if (s === 'Ativa' || s === 1) return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+  if (s === 'Cancelada' || s === 0) return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
   if (s === 'Concluida') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
   if (s === 'Expirada') return 'bg-slate-100 text-slate-600 dark:bg-slate-800/50 dark:text-slate-400';
   return 'bg-slate-100 text-slate-600';
+}
+
+function getStatusLabel(s: string | number) {
+  if (s === 1) return 'ATIVA';
+  if (s === 0) return 'CANCELADA';
+  if (typeof s === 'string') return s.toUpperCase();
+  return String(s);
 }
 
 export default function Reservas() {
@@ -54,7 +61,7 @@ export default function Reservas() {
       setData((prev) =>
         prev.map((x) =>
           x.reserva_id === r.reserva_id
-            ? { ...x, reserva_status: 'Cancelada' }
+            ? { ...x, reserva_status: 0 as any }
             : x
         )
       );
@@ -146,7 +153,7 @@ export default function Reservas() {
                 <div className="p-6">
                   {/* Status badge */}
                   <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full mb-4 ${statusBadge(r.reserva_status)}`}>
-                    {r.reserva_status.toUpperCase()}
+                    {getStatusLabel(r.reserva_status)}
                   </span>
 
                   {/* Info */}
@@ -175,7 +182,7 @@ export default function Reservas() {
 
                 {/* Footer */}
                 <div className="bg-slate-50 dark:bg-slate-800/30 px-6 py-3 border-t border-slate-100 dark:border-slate-700 flex justify-between">
-                  {r.reserva_status === 'Ativa' ? (
+                  {(r.reserva_status === 'Ativa' || r.reserva_status === 1) ? (
                     <button
                       onClick={() => handleCancelar(r)}
                       className="text-slate-500 hover:text-rose-600 text-sm font-medium transition-colors"
