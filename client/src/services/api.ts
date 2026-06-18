@@ -399,32 +399,32 @@ export const emprestimos = {
 
 export const reservas = {
   listarAtivas: async (): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get('/listar-ativas');
+    const { data } = await clientReserva.get('/reserva/listar-ativas');
     return data.data ?? data;
   },
   obterPorId: async (id: number): Promise<Reserva> => {
-    const { data } = await clientReserva.get(`/listar/${id}`);
+    const { data } = await clientReserva.get(`/reserva/listar/${id}`);
     return data.data ?? data;
   },
   criar: async (payload: { usuario_id: number; livro_id: number }) => {
-    const { data } = await clientReserva.post('/criar', payload);
+    const { data } = await clientReserva.post('/reserva/criar', payload);
     return data.data ?? data;
   },
   cancelar: async (id: number) => {
-    const { data } = await clientReserva.patch(`/atualizar-status/${id}`, { reserva_status: 'Cancelada' });
+    const { data } = await clientReserva.patch(`/reserva/atualizar-status/${id}`, { reserva_status: 0 });
     return data.data ?? data;
   },
   buscarPorUsuario: async (usuarioId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`/usuario/listar/${usuarioId}`);
+    const { data } = await clientReserva.get(`/reserva/usuario/listar/${usuarioId}`);
     return data.data ?? data;
   },
   filaDoLivro: async (livroId: number): Promise<Reserva[]> => {
-    const { data } = await clientReserva.get(`/livro/listar-fila/${livroId}`);
+    const { data } = await clientReserva.get(`/reserva/livro/listar-fila/${livroId}`);
     return data.data ?? data;
   },
   contarPendentes: async (): Promise<number> => {
-    const { data } = await clientReserva.get('/metricas/pendentes');
-    return data.data?.total ?? data.total ?? 0;
+    const { data } = await clientReserva.get('/reserva/metricas/pendentes');
+    return data.data?.total_pendentes ?? data.total_pendentes ?? 0;
   },
 };
 
@@ -469,7 +469,7 @@ export async function checkServicos() {
     ping(clientCatalogo),
     ping(clientUsuario),
     ping(clientEmprestimo),
-    ping(clientReserva, '/listar-ativas'),
+    ping(clientReserva, '/reserva/listar-ativas'),
   ]);
   return { catalogo, usuario, emprestimo, reserva };
 }
